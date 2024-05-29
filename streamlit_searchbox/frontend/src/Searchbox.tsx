@@ -139,7 +139,7 @@ class Searchbox extends StreamlitComponentBase<State> {
     };
 
     return (
-      <div>
+      <div style={this.style.globalContainer}>
         {this.props.args.label && (
           <div style={this.style.label}>{this.props.args.label}</div>
         )}
