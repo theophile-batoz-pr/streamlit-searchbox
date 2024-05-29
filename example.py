@@ -46,6 +46,7 @@ def search_wikipedia_ids(searchterm: str) -> List[tuple[str, Any]]:
             article["pageid"],
         )
         for article in response
+        if searchterm in article["title"]
     ]
 
 
@@ -90,6 +91,9 @@ boxes = [
         default="SOME DEFAULT",
         clear_on_submit=False,
         key=search_wikipedia_ids.__name__,
+        debounce=300,
+        edit_after_submit="current",
+        # rerun_on_update=False,
     ),
     dict(
         search_function=search,

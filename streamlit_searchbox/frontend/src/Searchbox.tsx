@@ -44,6 +44,10 @@ class Searchbox extends StreamlitComponentBase<State> {
     this.props.args.style_overrides?.searchbox || {},
   );
   private ref: any = React.createRef();
+  /**
+   * Number is the timeoutID, to cancel it if need be.
+   */
+  private lastSearchUpdate: any = React.createRef<[string, number] | undefined>();
 
   /**
    * new keystroke on searchbox
@@ -56,8 +60,16 @@ class Searchbox extends StreamlitComponentBase<State> {
       inputValue: input,
       option: null,
     });
-
-    streamlitReturn("search", input);
+    if (this.lastSearchUpdate.current) {
+      const [_, timeoutId] = this.lastSearchUpdate.current
+      clearTimeout(timeoutId)
+    }
+    this.lastSearchUpdate.current = [
+      input,
+      setTimeout(() => {
+        streamlitReturn("search", this.lastSearchUpdate.current?.[0]);
+      }, this.props.args.debounce)
+    ]
   };
 
   /**

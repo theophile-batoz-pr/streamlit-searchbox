@@ -171,6 +171,7 @@ def st_searchbox(
     default_options: List[Any] | None = None,
     clear_on_submit: bool = False,
     rerun_on_update: bool = True,
+    debounce: int = 100,
     edit_after_submit: Literal["disabled", "current", "option", "concat"] = "disabled",
     style_overrides: StyleOverrides | None = None,
     key: str = "searchbox",
@@ -217,6 +218,7 @@ def st_searchbox(
         label=label,
         edit_after_submit=edit_after_submit,
         style_overrides=style_overrides,
+        debounce=debounce,
         # react return state within streamlit session_state
         key=st.session_state[key]["key_react"],
     )
