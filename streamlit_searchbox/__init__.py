@@ -148,6 +148,8 @@ DropdownStyle = TypedDict(
 
 
 class SearchboxStyle(TypedDict, total=False):
+    globalContainer: dict | None
+    label: dict | None
     menuList: dict | None
     singleValue: dict | None
     input: dict | None

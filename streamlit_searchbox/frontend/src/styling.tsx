@@ -14,17 +14,22 @@ import {
 } from "./icons";
 class SearchboxStyle {
   theme: any;
+  globalContainer: any;
   label: any;
   select: StylesConfig;
 
   constructor(theme: any, overrides: any) {
     this.theme = theme;
+    this.globalContainer = {
+      ...(overrides.globalContainer || {}),
+    };
     this.label = {
       color: theme.textColor,
       fontSize: "0.82em",
       fontWeight: 400,
       font: theme.font,
       marginBottom: "0.85rem",
+      ...(overrides.label || {}),
     };
 
     this.select = {
