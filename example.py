@@ -92,7 +92,7 @@ boxes = [
         clear_on_submit=False,
         key=search_wikipedia_ids.__name__,
         debounce=300,
-        edit_after_submit="current",
+        edit_after_submit="option",
         # rerun_on_update=False,
     ),
     dict(
