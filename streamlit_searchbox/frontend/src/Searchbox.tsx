@@ -47,7 +47,11 @@ class Searchbox extends StreamlitComponentBase<State> {
   /**
    * Number is the timeoutID, to cancel it if need be.
    */
-  private lastSearchUpdate: any = React.createRef<[string, number] | undefined>();
+  private lastSearchUpdate: any = React.createRef<{
+    value: string,
+    timeoutId: number,
+    timeoutCreatedAt: number
+  } | undefined>();
 
   /**
    * new keystroke on searchbox
@@ -60,16 +64,28 @@ class Searchbox extends StreamlitComponentBase<State> {
       inputValue: input,
       option: null,
     });
-    if (this.lastSearchUpdate.current) {
-      const [_, timeoutId] = this.lastSearchUpdate.current
-      clearTimeout(timeoutId)
+    const now = Date.now()
+    const newValue = {
+      value: input,
+      timeoutCreatedAt: now,
+      timeoutId: (undefined as any)
     }
-    this.lastSearchUpdate.current = [
-      input,
-      setTimeout(() => {
-        streamlitReturn("search", this.lastSearchUpdate.current?.[0]);
-      }, this.props.args.debounce)
-    ]
+    const debounce = this.props.args.debounce
+    let resetTimeout = true
+    if (this.lastSearchUpdate.current) {
+      const {timeoutId, timeoutCreatedAt} = this.lastSearchUpdate.current
+      if (now - timeoutCreatedAt > debounce) {
+        clearTimeout(timeoutId)
+      } else {
+        resetTimeout = false
+      }
+    }
+    if (resetTimeout) {
+      newValue.timeoutId = setTimeout(() => {
+        streamlitReturn("search", this.lastSearchUpdate.current?.value);
+      }, debounce)
+    }
+    this.lastSearchUpdate.current = newValue
   };
 
   /**
@@ -133,8 +149,11 @@ class Searchbox extends StreamlitComponentBase<State> {
 
     // always focus the input field to enable edits
     const onFocus = () => {
-      if (editableAfterSubmit && this.state.inputValue) {
-        this.state.inputValue && this.ref.current.select.inputRef.select();
+      if (this.state.inputValue) {
+        if (editableAfterSubmit) {
+          this.state.inputValue && this.ref.current.select.inputRef.select();
+        }
+        this.setState({ menu: true })
       }
     };
 
