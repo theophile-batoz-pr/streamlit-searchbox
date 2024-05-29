@@ -49,8 +49,10 @@ class Searchbox extends StreamlitComponentBase<State> {
    */
   private lastSearchUpdate: any = React.createRef<{
     value: string,
-    timeoutId: number,
-    timeoutCreatedAt: number
+    timeout: {
+      id: number,
+      createdAt: number
+    }
   } | undefined>();
 
   /**
@@ -64,26 +66,31 @@ class Searchbox extends StreamlitComponentBase<State> {
       inputValue: input,
       option: null,
     });
+
     const now = Date.now()
     const newValue = {
       value: input,
-      timeoutCreatedAt: now,
-      timeoutId: (undefined as any)
+      timeout: (undefined as any)
     }
     const debounce = this.props.args.debounce
     let resetTimeout = true
     if (this.lastSearchUpdate.current) {
-      const {timeoutId, timeoutCreatedAt} = this.lastSearchUpdate.current
-      if (now - timeoutCreatedAt > debounce) {
-        clearTimeout(timeoutId)
+      const {timeout} = this.lastSearchUpdate.current
+      const {id, createdAt} = timeout
+      newValue.timeout = timeout
+      if (now - createdAt > debounce - 10) {
+        clearTimeout(id)
       } else {
         resetTimeout = false
       }
     }
     if (resetTimeout) {
-      newValue.timeoutId = setTimeout(() => {
-        streamlitReturn("search", this.lastSearchUpdate.current?.value);
-      }, debounce)
+      newValue.timeout = {
+        createdAt: now,
+        id: setTimeout(() => {
+          streamlitReturn("search", this.lastSearchUpdate.current?.value);
+        }, debounce)
+      }
     }
     this.lastSearchUpdate.current = newValue
   };
@@ -151,9 +158,10 @@ class Searchbox extends StreamlitComponentBase<State> {
     const onFocus = () => {
       if (this.state.inputValue) {
         if (editableAfterSubmit) {
-          this.state.inputValue && this.ref.current.select.inputRef.select();
+          this.state.inputValue && this.ref?.current?.select?.inputRef?.select?.();
         }
         this.setState({ menu: true })
+        streamlitReturn("search", this.state.inputValue)
       }
     };
 
