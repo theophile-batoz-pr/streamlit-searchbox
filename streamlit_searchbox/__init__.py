@@ -77,25 +77,21 @@ def _process_search(
     search_function: Callable[[str], List[Any]],
     key: str,
     searchterm: str,
-    rerun_on_update: bool,
     **kwargs,
 ) -> None:
     # nothing changed, avoid new search
     if searchterm == st.session_state[key]["search"]:
-        return st.session_state[key]["result"]
+        return False
 
     st.session_state[key]["search"] = searchterm
     search_results = search_function(searchterm, **kwargs)
-
     if search_results is None:
         search_results = []
 
     st.session_state[key]["options_js"] = _list_to_options_js(search_results)
     st.session_state[key]["options_py"] = _list_to_options_py(search_results)
-
-    if rerun_on_update:
-        rerun()
-
+    
+    return True
 
 def _set_defaults(
     key: str,
@@ -234,6 +230,7 @@ def st_searchbox(
             "globalCss": globalCss,
             # react return state within streamlit session_state
             "key": st.session_state[key]["key_react"],
+            "optionSource": st.session_state[key]["search"]
         }]
     )
 
@@ -245,12 +242,16 @@ def st_searchbox(
 
     if interaction == "search":
         # triggers rerun, no ops afterwards executed
-        _process_search(search_function, key, value, rerun_on_update, **kwargs)
+        should_rerun = _process_search(search_function, key, value, **kwargs)
+        if rerun_on_update and should_rerun:
+            rerun()
+
 
     if interaction == "button-click" and on_button_click is not None:
         on_button_click(value)
 
     if interaction == "submit":
+        st.session_state[key]["search"] = value
         st.session_state[key]["result"] = (
             st.session_state[key]["options_py"][value]
             if "options_py" in st.session_state[key]
@@ -276,7 +277,9 @@ SearchboxProps = TypedDict(
         "placeholder": str,
         "label": str | None,
         "title": str | None,
+        "titlePicto": str | None,
         "button": str | None,
+        "buttonPicto": str | None,
         "cssPrefix": str | None,
         "globalCss": str | None,
         "on_button_click": Callable[[str], None] | None,
@@ -292,10 +295,55 @@ SearchboxProps = TypedDict(
     total=False,
 )
 
-@wrap_inactive_session
+
+def single_state(props_init, react_state, key) -> [Any, bool]:
+    """We assume the input props and the result are array of the same size (should always be the case).
+    The second return value is rerun_on_update (because we must do it only at the end).
+    """
+    rerun_on_update = False
+    default = props_init.get("default")
+    default_options = props_init.get("default_options")
+
+    if key not in st.session_state:
+        _set_defaults(key, default, default_options)
+        return [None, True]
+    if react_state is None:
+        return [st.session_state[key]["result"], rerun_on_update]
+    search_function = props_init.get("search_function")
+    rerun_on_update_arg = props_init.get("rerun_on_update", True)
+    on_button_click = props_init.get("on_button_click")
+
+    interaction, value = react_state["interaction"], react_state["value"]
+
+    if interaction == "search":
+        # triggers rerun, no ops afterwards executed
+        should_rerun = _process_search(search_function, key, value)
+        rerun_on_update = rerun_on_update_arg and should_rerun
+    if interaction == "button-click" and on_button_click is not None:
+        on_button_click(value)
+
+    if interaction == "submit":
+        actual_value = st.session_state[key]["options_py"][value]\
+            if "options_py" in st.session_state[key] else value
+        # if st.session_state[key]["search"] != actual_value:
+        #     rerun_on_update = actual_value
+        st.session_state[key]["search"] = actual_value
+        st.session_state[key]["result"] = actual_value
+        return [st.session_state[key]["result"], rerun_on_update]
+
+    if interaction == "reset":
+        _set_defaults(key, default, default_options)
+        if st.session_state[key]["search"] != "":
+            rerun_on_update = rerun_on_update_arg
+        return [default, rerun_on_update]
+
+    return [st.session_state[key]["search"], rerun_on_update]
+
 def st_searchbox_list(
     global_key: str,
     props_list: List[SearchboxProps],
+    global_css_prefix: str | None = None,
+    global_css: str | None = None,
     **kwargs,
 ) -> Any:
     """
@@ -327,20 +375,24 @@ def st_searchbox_list(
     Returns:
         any: based on user selection
     """
-    props_list_initialized = []
-    props_list_serializable = []
+    props_list_js = []
+    props_list_py = []
     # initialize with defaults :
     for props in props_list:
         key = props.get("key", "searchbox")
         default = props.get("default", None)
         default_options = props.get("default_options", None)
+        if key not in st.session_state:
+            _set_defaults(key, default, default_options)
         item = {
             "placeholder": props.get("placeholder", "Search ..."),
             "label": props.get("label", None),
             "title": props.get("title", None),
+            "titlePicto": props.get("titlePicto", None),
             "button": props.get("button", None),
+            "buttonPicto": props.get("buttonPicto", None),
             "cssPrefix": props.get("cssPrefix", None),
-            "globalCss": props.get("globalCss", None),
+            "searchBoxCss": props.get("searchBoxCss", None),
             "default": default,
             "default_options": default_options,
             "clear_on_submit": props.get("clear_on_submit", False),
@@ -348,60 +400,47 @@ def st_searchbox_list(
             "debounce": props.get("debounce", 100),
             "edit_after_submit": props.get("edit_after_submit", "disabled"),
             "style_overrides": props.get("style_overrides", None),
-            "key": key,
+            "key": st.session_state[key]["key_react"],
+            "options": st.session_state[key]["options_js"],
+            "optionSource": st.session_state[key]["search"]
         }
-        props_list_serializable.append(item)
-        item_full = {
+        props_list_js.append(item)
+        item_for_y = {
             **item,
+            "key": key,
             "search_function": props.get("search_function"),
             "on_button_click": props.get("on_button_click", None)
         }
-        props_list_initialized.append(item_full)
-        if key not in st.session_state:
-            _set_defaults(key, default, default_options)
+        props_list_py.append(item_for_y)
 
     # everything here is passed to react as this.props.args
     react_state_global = _get_react_component(
         key=global_key, #st.session_state[key]["key_react"],
-        propsList=props_list_serializable
+        propsList=props_list_js,
+        cssPrefix=global_css_prefix,
+        globalCss=global_css
     )
-    print(react_state_global)
-    def single_state(props_init, react_state):
-        "We assume the input props and the result are array of the same size (should always be the case)."
-        if react_state is None:
-            return st.session_state[key]["result"]
-        search_function = props_init.get("search_function")
-        rerun_on_update = props_init.get("rerun_on_update")
-        on_button_click = props_init.get("on_button_click")
-        interaction, value = react_state["interaction"], react_state["value"]
 
-        if interaction == "search":
-            # triggers rerun, no ops afterwards executed
-            _process_search(search_function, key, value, rerun_on_update, **kwargs)
-
-        if interaction == "button-click" and on_button_click is not None:
-            on_button_click(value)
-
-        if interaction == "submit":
-            st.session_state[key]["result"] = (
-                st.session_state[key]["options_py"][value]
-                if "options_py" in st.session_state[key]
-                else value
-            )
-            return st.session_state[key]["result"]
-
-        if interaction == "reset":
-            _set_defaults(key, default, default_options)
-
-            if rerun_on_update:
-                rerun()
-
-            return default
-
-        return st.session_state[key]["result"]
+    def index_react_glob(idx: int):
+        if react_state_global is None:
+            return None
+        if isinstance(react_state_global, dict):
+            return react_state_global.get(str(idx))
+        if isinstance(react_state_global, list):
+            return react_state_global[idx]
+        return None
+    result = []
+    
+    global_rerun_on_update = False
+    for idx, props in enumerate(props_list_py):
+        key = props.get("key")
+        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key)
         
-    result = [
-        single_state(props, react_state_global[idx] if react_state_global is not None else None)
-        for idx, props in enumerate(props_list_initialized)]
+        global_rerun_on_update = global_rerun_on_update or rerun_on_update
+        result.append(val)
+        
+    if global_rerun_on_update:
+        rerun()
+
     # no new react interaction happened
     return result

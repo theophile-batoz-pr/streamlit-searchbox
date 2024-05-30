@@ -45,6 +45,11 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
   );
   private ref: any = React.createRef();
   /**
+   * The last event fired, before any processing whatsoever.
+   */
+  private eventFired = React.createRef() as React.MutableRefObject<StreamlitReturn["interaction"] | undefined>
+
+  /**
    * Number is the timeoutID, to cancel it if need be.
    */
   private lastSearchUpdate: any = React.createRef<{
@@ -165,19 +170,34 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
       }
     };
     const cssPrefix = this.props.args.cssPrefix
+    const isLoading = this.eventFired.current === "search"
+      && this.props.args.optionSource !== this.state.inputValue
+    const optionList = this.eventFired.current !== "reset"
+      && this.props.args.optionSource === this.state.inputValue ?
+        this.props.args.options : []
     return (
       <>
-      <style>
-        {this.props.args.globalCss} 
-      </style>
-      <div id={`${cssPrefix}-globalContainer`}>
+      {this.props.args.searchBoxCss &&
+        <style>
+          {this.props.args.searchBoxCss} 
+        </style>
+      }
+      <div className={`${cssPrefix} searchBoxContainer`}>
         {this.props.args.title && (
-          <h1 id={`${cssPrefix}-title`}>{this.props.args.title}</h1>
+          <h1 className={`${cssPrefix} title`}>
+            {this.props.args.titlePicto &&
+              <span
+                id={`${cssPrefix} titlePicto`}
+                dangerouslySetInnerHTML={{__html: this.props.args.titlePicto}}
+              />
+            }
+            {this.props.args.title}
+          </h1>
         )}
         {this.props.args.label && (
-          <div id={`${cssPrefix}-label`} style={this.style.label}>{this.props.args.label}</div>
+          <div className={`${cssPrefix} label`} style={this.style.label}>{this.props.args.label}</div>
         )}
-        <div id={`${cssPrefix}-buttonRow`}>
+        <div className={`${cssPrefix} buttonRow`}>
           <Select
             // showing the disabled react-select leads to the component
             // not showing the inputValue but just an empty input field
@@ -187,7 +207,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             isClearable={true}
             isSearchable={true}
             styles={this.style.select}
-            options={this.props.args.options}
+            options={optionList}
             placeholder={this.props.args.placeholder}
             // component overrides
             components={{
@@ -212,10 +232,12 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             onChange={(option: any, a: any) => {
               switch (a.action) {
                 case "select-option":
+                  this.eventFired.current = "submit"
                   this.callbackSubmit(option);
                   return;
 
                 case "clear":
+                  this.eventFired.current = "reset"
                   this.callbackReset();
                   return;
               }
@@ -227,19 +249,31 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
               switch (action) {
                 // ignore menu close or blur/unfocus events
                 case "input-change":
+                  this.eventFired.current = "search"
                   this.callbackSearch(inputValue);
                   return;
               }
             }}
             onMenuOpen={() => this.setState({ menu: true })}
             onMenuClose={() => this.setState({ menu: false })}
+            isLoading={isLoading}
             menuIsOpen={this.props.args.options && this.state.menu}
           />
           {this.props.args.button && (
             <button
-              id={`${cssPrefix}-button`}
-              onClick={() => this.state.option?.value && this.props.streamlitReturnFn("button-click", this.state.option?.value)}
+              className={`${cssPrefix} button`}
+              onClick={() => {
+                this.eventFired.current = "button-click"
+                this.state.option?.value && this.props.streamlitReturnFn("button-click", this.state.option?.value)
+              }
+              }
               >
+              {this.props.args.buttonPicto &&
+                <span
+                  className={`${cssPrefix} buttonPicto`}
+                  dangerouslySetInnerHTML={{__html: this.props.args.buttonPicto}}
+                />
+              }
               {this.props.args.button}
             </button>
           )}
@@ -268,7 +302,12 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
       })
     }
 
-    return <>
+    return <div className={`${this.props.args.cssPrefix ?? 'searchBox'} globalContainer`}>
+      {this.props.args.globalCss &&
+        <style>
+          {this.props.args.globalCss} 
+        </style>
+      }
       {propsList.map((innerProps: any, index: number) => {
         const streamlitReturnFn = (interaction: string, value: any) => {
           streamlitReturnGlobalFn(index, {interaction, value})
@@ -280,7 +319,7 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
           streamlitReturnFn={streamlitReturnFn}
           />
       })}
-    </>
+    </div>
   }
 }
 export default withStreamlitConnection(Searchbox);
