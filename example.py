@@ -9,7 +9,7 @@ from typing import Any, List
 import requests
 import streamlit as st
 
-from streamlit_searchbox import st_searchbox
+from streamlit_searchbox import st_searchbox, st_searchbox_list
 
 logging.getLogger("streamlit_searchbox").setLevel(logging.DEBUG)
 
@@ -20,6 +20,7 @@ def search_wikipedia_ids(searchterm: str) -> List[tuple[str, Any]]:
     """
     function with list of tuples (label:str, value:any)
     """
+    print("calling", searchterm)
     # you can use a nice default here
     if not searchterm:
         return []
@@ -93,6 +94,37 @@ boxes = [
         key=search_wikipedia_ids.__name__,
         debounce=300,
         edit_after_submit="option",
+        title="qsdqd",
+        button="qsdqd",
+        cssPrefix="XXXX",
+        globalCss="""
+        #XXXX-title {
+            color: purple
+        }
+        #XXXX-globalContainer {
+            background: #DAE4F4;
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 0.3rem;
+            padding: 1em;
+            # display: flex;
+        }
+        #XXXX-buttonRow {
+            # background: white;
+            display: flex;
+            gap: 1rem;
+        }
+        #XXXX-button {
+            border: 2px solid #013467;
+            color: #013467;
+            border-radius: 0.3rem;
+            background: white;
+            
+            &:hover {
+                background: #013467;
+                color: white;
+            }
+        }
+        """,
         # rerun_on_update=False,
     ),
     dict(
@@ -290,3 +322,5 @@ with manual_example:
     )
 
     st.write(manual)
+
+st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[boxes[0]])
