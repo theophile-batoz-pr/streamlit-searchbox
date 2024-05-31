@@ -76,6 +76,9 @@ def search_empty_list(_: str):
 def search_kwargs(searchterm: str, **kwargs) -> List[str]:
     return [f"{searchterm}_{len(kwargs)}" for i in range(10)]
 
+def on_button_click(val: str) -> None:
+    print(val)
+    
 
 #################################
 #### application starts here ####
@@ -109,6 +112,7 @@ boxes = [
         """,
         cssPrefix="XXXX",
         rerun_on_update=True,
+        on_button_click=on_button_click
     ),
     # dict(
     #     search_function=search,
