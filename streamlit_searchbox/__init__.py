@@ -248,7 +248,8 @@ def st_searchbox(
 
 
     if interaction == "button-click" and on_button_click is not None:
-        on_button_click(value)
+        val = st.session_state[key]["search"]
+        on_button_click(val)
 
     if interaction == "submit":
         st.session_state[key]["search"] = value
