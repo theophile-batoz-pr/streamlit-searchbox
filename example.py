@@ -111,6 +111,7 @@ boxes = [
 </svg>
         """,
         cssPrefix="XXXX",
+        default_options=["inital", "list", "of", "options"],
         rerun_on_update=True,
         on_button_click=on_button_click
     ),

@@ -36,7 +36,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
   public state: State = {
     menu: false,
     option: null,
-    inputValue: "",
+    inputValue: this.props.args.optionSource,
   };
 
   private style = new SearchboxStyle(
@@ -165,8 +165,13 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
         if (editableAfterSubmit) {
           this.state.inputValue && this.ref?.current?.select?.inputRef?.select?.();
         }
-        this.setState({ menu: true })
         this.props.streamlitReturnFn("search", this.state.inputValue)
+        this.eventFired.current = "search"
+        // hack for the absence of promise in streamlitReturnFn
+        waitUntil(() => this.props.args.optionSource === this.state.inputValue, 100).then(() => {
+          this.setState({ menu: true })
+        })
+
       }
     };
     const cssPrefix = this.props.args.cssPrefix
@@ -323,3 +328,16 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
   }
 }
 export default withStreamlitConnection(Searchbox);
+
+
+function waitUntil (check: () => boolean, baseMs: number = 10): Promise<void> {
+  return new Promise((res, reject) => {
+    setTimeout(() => {
+      if (check()) {
+        res(undefined)
+      } else {
+        waitUntil(check, baseMs)
+      }
+    }, baseMs)
+  })
+}
