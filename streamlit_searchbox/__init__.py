@@ -8,7 +8,7 @@ import functools
 import logging
 import os
 import time
-from typing import Any, Callable, List, Literal, TypedDict, TypeVar, Generic
+from typing import Any, Callable, List, Literal, TypedDict
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -98,6 +98,8 @@ def _set_defaults(
     default: Any,
     default_options: List[Any] | None = None,
 ) -> None:
+    default_key_react = f"{key}_react_{str(time.time())}"
+    key_react = st.session_state.get(key, {}).get("key_react", default_key_react)
     st.session_state[key] = {
         # updated after each selection / reset
         "result": default,
@@ -106,7 +108,7 @@ def _set_defaults(
         # updated after each search_function run
         "options_js": [],
         # key that is used by react component, use time suffix to reload after clear
-        "key_react": f"{key}_react_{str(time.time())}",
+        "key_react": key_react,
     }
 
     if default_options:
@@ -233,7 +235,6 @@ def st_searchbox(
             "optionSource": st.session_state[key]["search"]
         }]
     )
-
     if react_state is None:
         return st.session_state[key]["result"]
     else:
@@ -297,7 +298,7 @@ SearchboxProps = TypedDict(
 )
 
 
-def single_state(props_init, react_state, key) -> [Any, bool]:
+def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, bool]:
     """We assume the input props and the result are array of the same size (should always be the case).
     The second return value is rerun_on_update (because we must do it only at the end).
     """
@@ -308,6 +309,7 @@ def single_state(props_init, react_state, key) -> [Any, bool]:
     if key not in st.session_state:
         _set_defaults(key, default, default_options)
         return [None, True]
+    print("react_state", react_state)
     if react_state is None:
         return [st.session_state[key]["result"], rerun_on_update]
     search_function = props_init.get("search_function")
@@ -324,12 +326,16 @@ def single_state(props_init, react_state, key) -> [Any, bool]:
         on_button_click(value)
 
     if interaction == "submit":
-        actual_value = st.session_state[key]["options_py"][value]\
-            if "options_py" in st.session_state[key] else value
+        previous_val = st.session_state[key]["search"]
+        actual_value = value
         # if st.session_state[key]["search"] != actual_value:
         #     rerun_on_update = actual_value
-        st.session_state[key]["search"] = actual_value
+        if not is_multi:
+            st.session_state[key]["search"] = actual_value
         st.session_state[key]["result"] = actual_value
+        # st.session_state[key]["key_react"] = f"{key}_react_{str(time.time())}"
+        print("previous_val", previous_val, actual_value)
+        # rerun_on_update = rerun_on_update or previous_val != actual_value
         return [st.session_state[key]["result"], rerun_on_update]
 
     if interaction == "reset":
@@ -385,6 +391,7 @@ def st_searchbox_list(
         default_options = props.get("default_options", None)
         if key not in st.session_state:
             _set_defaults(key, default, default_options)
+        print("lkqjslkdj", st.session_state[key]["search"])
         item = {
             "placeholder": props.get("placeholder", "Search ..."),
             "label": props.get("label", None),
@@ -401,6 +408,7 @@ def st_searchbox_list(
             "debounce": props.get("debounce", 100),
             "edit_after_submit": props.get("edit_after_submit", "disabled"),
             "style_overrides": props.get("style_overrides", None),
+            "isMulti": props.get("isMulti", False),
             "key": st.session_state[key]["key_react"],
             "options": st.session_state[key]["options_js"],
             "optionSource": st.session_state[key]["search"]
@@ -435,7 +443,7 @@ def st_searchbox_list(
     global_rerun_on_update = False
     for idx, props in enumerate(props_list_py):
         key = props.get("key")
-        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key)
+        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("isMulti", False))
         
         global_rerun_on_update = global_rerun_on_update or rerun_on_update
         result.append(val)

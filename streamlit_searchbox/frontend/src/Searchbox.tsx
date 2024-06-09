@@ -15,7 +15,8 @@ type Option = {
 
 interface State {
   menu: boolean;
-  option: Option | null;
+  selectedOption: Option | null;
+  selectedOptionList: Option[];
   inputValue: string;
 }
 
@@ -35,7 +36,8 @@ const Input = (props: any) => <components.Input {...props} isHidden={false} />;
 class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitReturnFn: (interaction: string, value: any) => void}, State> {
   public state: State = {
     menu: false,
-    option: null,
+    selectedOption: null,
+    selectedOptionList: [],
     inputValue: this.props.args.optionSource,
   };
 
@@ -67,10 +69,6 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
    * @returns
    */
   private callbackSearch = (input: string): void => {
-    this.setState({
-      inputValue: input,
-      option: null,
-    });
 
     const now = Date.now()
     const newValue = {
@@ -98,6 +96,11 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
       }
     }
     this.lastSearchUpdate.current = newValue
+    this.setState((s) => ({
+      inputValue: input,
+      selectedOption: null,
+      selectedOptionList: s.selectedOptionList,
+    }));
   };
 
   /**
@@ -106,11 +109,12 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
   private callbackReset(): void {
     this.setState({
       menu: false,
-      option: null,
+      selectedOption: null,
+      selectedOptionList: [],
       inputValue: "",
     });
 
-    this.props.streamlitReturnFn("reset", null);
+    this.props.streamlitReturnFn("reset", "");
   }
 
   /**
@@ -118,37 +122,44 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
    * @param option
    */
   private callbackSubmit(option: Option) {
-    if (this.props.args.clear_on_submit) {
-      this.setState({
-        menu: false,
-        inputValue: "",
-        option: null,
-      });
-    } else {
-      let input = "";
-
-      switch (this.props.args.edit_after_submit) {
-        case "current":
-          input = this.state.inputValue;
-          break;
-
-        case "option":
-          input = option.label;
-          break;
-
-        case "concat":
-          input = this.state.inputValue + " " + option.label;
-          break;
+    this.setState((s, props) => {
+      if (this.props.args.isMulti) {
+        this.props.streamlitReturnFn("submit", (option as any as Option[]).map(({label}) => label));
+      } else {
+        this.props.streamlitReturnFn("submit", option.value);
       }
+      if (props.args.clear_on_submit) {
+        return ({
+          menu: false,
+          inputValue: "",
+          selectedOption: null,
+          selectedOptionList: [],
+        });
+      } else {
+        let input = "";
 
-      this.setState({
+        switch (props.args.edit_after_submit) {
+          case "current":
+            input = s.inputValue;
+            break;
+
+          case "option":
+            input = option.label;
+            break;
+
+          case "concat":
+            input = s.inputValue + " " + option.label;
+            break;
+        }
+      console.log("callbackSubmit", props.args.edit_after_submit, s.inputValue, option)
+      return {
         menu: false,
-        option: option,
+        selectedOption: option,
         inputValue: input,
-      });
-    }
-
-    this.props.streamlitReturnFn("submit", option.value);
+        selectedOptionList: this.props.args.isMulti ? (option as any as Option[]) : s.selectedOptionList,
+      }
+      }
+    });
   }
 
   /**
@@ -165,6 +176,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
         if (editableAfterSubmit) {
           this.state.inputValue && this.ref?.current?.select?.inputRef?.select?.();
         }
+
         this.props.streamlitReturnFn("search", this.state.inputValue)
         this.eventFired.current = "search"
         // hack for the absence of promise in streamlitReturnFn
@@ -177,9 +189,9 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
     const cssPrefix = this.props.args.cssPrefix
     const isLoading = this.eventFired.current === "search"
       && this.props.args.optionSource !== this.state.inputValue
-    const optionList = this.eventFired.current !== "reset"
-      && this.props.args.optionSource === this.state.inputValue ?
-        this.props.args.options : []
+    console.log('this.props.args.optionSource', this.props.args.optionSource, this.state.inputValue)
+    const optionList = this.props.args.options
+    const isMulti = this.props.args.isMulti
     return (
       <>
       {this.props.args.searchBoxCss &&
@@ -207,13 +219,14 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             // showing the disabled react-select leads to the component
             // not showing the inputValue but just an empty input field
             // we therefore need to re-render the component if we want to keep the focus
-            value={this.state.option}
+            value={isMulti ? this.state.selectedOptionList : this.state.selectedOption}
             inputValue={editableAfterSubmit ? this.state.inputValue : undefined}
             isClearable={true}
             isSearchable={true}
             styles={this.style.select}
             options={optionList}
             placeholder={this.props.args.placeholder}
+            isMulti={isMulti}
             // component overrides
             components={{
 
@@ -235,8 +248,15 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             onFocus={() => onFocus()}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onChange={(option: any, a: any) => {
+              console.log(a.action, option)
               switch (a.action) {
                 case "select-option":
+                  this.eventFired.current = "submit"
+                  console.log("select-option", option)
+                  this.callbackSubmit(option);
+                  return;
+                case "remove-value":
+                  if (!this.props.args.isMulti) return
                   this.eventFired.current = "submit"
                   this.callbackSubmit(option);
                   return;
@@ -269,7 +289,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
               className={`${cssPrefix} button`}
               onClick={() => {
                 this.eventFired.current = "button-click"
-                this.state.option?.label && this.props.streamlitReturnFn("button-click", this.state.option?.label)
+                this.state.selectedOption?.label && this.props.streamlitReturnFn("button-click", this.state.selectedOption?.label)
               }
               }
               >
@@ -296,6 +316,7 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
    * @returns
    */
   public render = (): ReactNode => {
+    console.log("global rerender")
     const propsList = this.props.args.propsList
     // const [_, setReturnValues] = useState<(null | StreamlitReturn)[]>(propsList.map(() => null))
     

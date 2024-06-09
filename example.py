@@ -346,5 +346,5 @@ globalCss="""
         }
         """
 st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
-    {**boxes[0], "key":"okokok-lqjjzbjfkfofof"}, {**boxes[0], "key":"okokok-mlqkjskdkmkqdlmk"
-               }], global_css=globalCss)
+    {**boxes[0], "key":"okokok-lqjjzbjfkfofof"}, {**boxes[0], "key":"okokok-mlqkjskdkmkqdlmk",
+            "isMulti": True, "edit_after_submit": "current"   }], global_css=globalCss)
