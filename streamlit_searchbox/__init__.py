@@ -309,7 +309,6 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, 
     if key not in st.session_state:
         _set_defaults(key, default, default_options)
         return [None, True]
-    print("react_state", react_state)
     if react_state is None:
         return [st.session_state[key]["result"], rerun_on_update]
     search_function = props_init.get("search_function")
@@ -334,7 +333,6 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, 
             st.session_state[key]["search"] = actual_value
         st.session_state[key]["result"] = actual_value
         # st.session_state[key]["key_react"] = f"{key}_react_{str(time.time())}"
-        print("previous_val", previous_val, actual_value)
         # rerun_on_update = rerun_on_update or previous_val != actual_value
         return [st.session_state[key]["result"], rerun_on_update]
 
@@ -391,7 +389,6 @@ def st_searchbox_list(
         default_options = props.get("default_options", None)
         if key not in st.session_state:
             _set_defaults(key, default, default_options)
-        print("lkqjslkdj", st.session_state[key]["search"])
         item = {
             "placeholder": props.get("placeholder", "Search ..."),
             "label": props.get("label", None),
