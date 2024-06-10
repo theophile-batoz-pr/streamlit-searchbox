@@ -44,6 +44,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
   private style = new SearchboxStyle(
     this.props.theme,
     this.props.args.style_overrides?.searchbox || {},
+    this.props.args.style_overrides || {}
   );
   private ref: any = React.createRef();
   /**
@@ -151,7 +152,6 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             input = s.inputValue + " " + option.label;
             break;
         }
-      console.log("callbackSubmit", props.args.edit_after_submit, s.inputValue, option)
       return {
         menu: false,
         selectedOption: option,
@@ -189,7 +189,6 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
     const cssPrefix = this.props.args.cssPrefix
     const isLoading = this.eventFired.current === "search"
       && this.props.args.optionSource !== this.state.inputValue
-    console.log('this.props.args.optionSource', this.props.args.optionSource, this.state.inputValue)
     const optionList = this.props.args.options
     const isMulti = this.props.args.isMulti
     return (
@@ -229,7 +228,10 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             isMulti={isMulti}
             // component overrides
             components={{
-
+              // MultiValue
+              // MultiValueContainer
+              // MultiValueLabel
+              // MultiValueRemove
               ClearIndicator: (props) =>
                 this.style.clearIndicator(
                   props,
@@ -248,11 +250,9 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             onFocus={() => onFocus()}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onChange={(option: any, a: any) => {
-              console.log(a.action, option)
               switch (a.action) {
                 case "select-option":
                   this.eventFired.current = "submit"
-                  console.log("select-option", option)
                   this.callbackSubmit(option);
                   return;
                 case "remove-value":
@@ -316,7 +316,6 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
    * @returns
    */
   public render = (): ReactNode => {
-    console.log("global rerender")
     const propsList = this.props.args.propsList
     // const [_, setReturnValues] = useState<(null | StreamlitReturn)[]>(propsList.map(() => null))
     
