@@ -113,7 +113,40 @@ boxes = [
         cssPrefix="XXXX",
         default_options=["inital", "list", "of", "options"],
         rerun_on_update=True,
-        on_button_click=on_button_click
+        on_button_click=on_button_click,
+        style_overrides={
+            # "multiValue": {
+            #     "backgroundColor": "black",
+            # },
+            # "multiValueLabel": {
+            #     "backgroundColor": "black",
+
+            # },
+                    "multiValueRemove": {
+                        # "color": "black",
+                        "background": "black",
+                        "svg": {
+                            "strokeWidth": "black"
+                        }
+                    },
+                    # "clear": {
+                    #     "width": 20,
+                    #     "height": 20,
+                    #     "icon": "circle-unfilled",
+                    #     "stroke-width": 2,
+                    #     "stroke": "red",
+                    # },
+                    # "dropdown": {
+                    #     "rotate": True,
+                    #     "width": 30,
+                    #     "height": 30,
+                    # },
+                    # "searchbox": {
+                    #     "menuList": {"backgroundColor": "transparent"},
+                    #     "singleValue": {"color": "red", "some": "data"},
+                    #     "option": {"color": "blue", "backgroundColor": "yellow"},
+                    # },
+                }
     ),
     # dict(
     #     search_function=search,

@@ -18,7 +18,7 @@ class SearchboxStyle {
   label: any;
   select: StylesConfig;
 
-  constructor(theme: any, overrides: any) {
+  constructor(theme: any, overrides: any, globContainer: any) {
     this.theme = theme;
     this.globalContainer = {
       ...(overrides.globalContainer || {}),
@@ -33,6 +33,15 @@ class SearchboxStyle {
     };
 
     this.select = {
+      multiValue: (style) => {
+        return {...style, ...(globContainer.multiValue || {})}
+      },
+      multiValueLabel: (style) => {
+        return {...style, ...(globContainer.multiValueLabel || {})}
+      },
+      multiValueRemove: (style) => {
+        return {...style, ...(globContainer.multiValueRemove || {})}
+      },
       // overall option list
       menuList: (styles: any) => {
         return {
