@@ -316,7 +316,7 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, 
     rerun_on_update_arg = props_init.get("rerun_on_update", True)
     on_button_click = props_init.get("on_button_click")
 
-    interaction, value = react_state["interaction"], react_state["value"]
+    interaction, value = react_state["interaction"], react_state.get("value", None)
 
     if interaction == "search":
         # triggers rerun, no ops afterwards executed
