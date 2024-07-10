@@ -289,7 +289,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
               className={`${cssPrefix} button`}
               onClick={() => {
                 this.eventFired.current = "button-click"
-                this.state.selectedOption?.label && this.props.streamlitReturnFn("button-click", this.state.selectedOption?.label)
+                this.props.streamlitReturnFn("button-click", this.state.selectedOption?.label)
               }
               }
               >
