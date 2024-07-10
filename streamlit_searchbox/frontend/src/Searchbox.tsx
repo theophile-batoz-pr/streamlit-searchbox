@@ -23,6 +23,7 @@ interface State {
 interface StreamlitReturn {
   interaction: "submit" | "search" | "reset" | "button-click";
   value: any;
+  isChangeSource?: boolean
 }
 const Input = (props: any) => <components.Input {...props} isHidden={false} />;
 
@@ -319,11 +320,26 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
     const propsList = this.props.args.propsList
     // const [_, setReturnValues] = useState<(null | StreamlitReturn)[]>(propsList.map(() => null))
     
-    const streamlitReturnGlobalFn = (index: number, returnVal: any): void => {
+    const streamlitReturnGlobalFn = (index: number, returnVal: {interaction: any, value: any}): void => {
       this.setState((s: (null | StreamlitReturn)[]) => {
-        s[index] = returnVal;
-        Streamlit.setComponentValue(s);
-        return s
+        // This workaround is made because streamlit has sa very weird tendency to turn
+        // JS arrays into integer-indexed objects, with all the problems it brings.
+        // This way we always have an array to work with (and always in sync with the widget number)
+        const newState = this.props.args.propsList.map((_v: any, innerIndex: number) => {
+          const value = s?.[innerIndex]
+          if (value?.isChangeSource) {
+            value.isChangeSource = false
+          }
+          if (innerIndex === index) {
+            return {
+              ...returnVal,
+              isChangeSource: true
+            }
+          }
+          return value
+        })
+        Streamlit.setComponentValue(newState);
+        return newState
       })
     }
 
