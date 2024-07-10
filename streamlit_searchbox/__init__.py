@@ -293,6 +293,7 @@ SearchboxProps = TypedDict(
         "edit_after_submit": Literal["disabled", "current", "option", "concat"],
         "style_overrides": StyleOverrides | None,
         "key": str,
+        "isMulti": bool,
     },
     total=False,
 )
