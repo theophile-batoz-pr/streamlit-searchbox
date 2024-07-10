@@ -76,8 +76,9 @@ def search_empty_list(_: str):
 def search_kwargs(searchterm: str, **kwargs) -> List[str]:
     return [f"{searchterm}_{len(kwargs)}" for i in range(10)]
 
-def on_button_click(val: str) -> None:
-    print(val)
+st.session_state["test_value"] = ""
+def on_button_click(val: str, global_value: Any) -> None:
+    st.session_state["test_value"] = { "val": val, "global_value": global_value}
     
 
 #################################
@@ -380,4 +381,9 @@ globalCss="""
         """
 st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
     {**boxes[0], "key":"okokok-lqjjzbjfkfofof"}, {**boxes[0], "key":"okokok-mlqkjskdkmkqdlmk",
-            "isMulti": True, "edit_after_submit": "current"   }], global_css=globalCss)
+            "isMulti": True, "clear_on_submit": False, "edit_after_submit": "option"   },
+    {**boxes[0], "key":"okokok-kkklanzkjbjwdd",
+            "isMulti": True, "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=globalCss)
+
+ok = st.session_state.get("test_value")
+st.write(ok)

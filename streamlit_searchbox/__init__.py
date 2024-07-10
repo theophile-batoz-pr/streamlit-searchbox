@@ -284,7 +284,7 @@ SearchboxProps = TypedDict(
         "buttonPicto": str | None,
         "cssPrefix": str | None,
         "globalCss": str | None,
-        "on_button_click": Callable[[str], None] | None,
+        "on_button_click": Callable[[str, Any], None] | None,
         "default": Any,
         "default_options": List[Any] | None,
         "clear_on_submit": bool,
@@ -314,28 +314,24 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, 
         return [st.session_state[key]["result"], rerun_on_update]
     search_function = props_init.get("search_function")
     rerun_on_update_arg = props_init.get("rerun_on_update", True)
-    on_button_click = props_init.get("on_button_click")
 
     interaction, value = react_state["interaction"], react_state.get("value", None)
+
+    if interaction == "button-click":
+        value_source = "result" if is_multi else "search"
+        return [st.session_state[key][value_source], rerun_on_update]
 
     if interaction == "search":
         # triggers rerun, no ops afterwards executed
         should_rerun = _process_search(search_function, key, value)
         rerun_on_update = rerun_on_update_arg and should_rerun
-    if interaction == "button-click" and on_button_click is not None:
-        on_button_click(value)
 
     if interaction == "submit":
-        previous_val = st.session_state[key]["search"]
         actual_value = value
-        # if st.session_state[key]["search"] != actual_value:
-        #     rerun_on_update = actual_value
         if not is_multi:
             st.session_state[key]["search"] = actual_value
         st.session_state[key]["result"] = actual_value
-        # st.session_state[key]["key_react"] = f"{key}_react_{str(time.time())}"
-        # rerun_on_update = rerun_on_update or previous_val != actual_value
-        return [st.session_state[key]["result"], rerun_on_update]
+        return [actual_value, rerun_on_update]
 
     if interaction == "reset":
         _set_defaults(key, default, default_options)
@@ -344,6 +340,18 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, 
         return [default, rerun_on_update]
 
     return [st.session_state[key]["search"], rerun_on_update]
+
+def button_click_handle(props_init, react_state, global_result: Any) -> None:
+    """Calls the function which handles the button click for each search widget.
+    This is done in a distinct phase (compared to single_state) for passing round the global result as well.
+    """
+    if react_state is None:
+        return
+    interaction, value = react_state.get("interaction"), react_state.get("value", None)
+    is_change_source = react_state.get("isChangeSource")
+    on_button_click = props_init.get("on_button_click")
+    if is_change_source and interaction == "button-click" and on_button_click is not None:
+        on_button_click(value, global_result)
 
 def st_searchbox_list(
     global_key: str,
@@ -442,10 +450,11 @@ def st_searchbox_list(
     for idx, props in enumerate(props_list_py):
         key = props.get("key")
         [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("isMulti", False))
-        
         global_rerun_on_update = global_rerun_on_update or rerun_on_update
         result.append(val)
-        
+    for idx, props in enumerate(props_list_py):
+        button_click_handle(props, index_react_glob(idx), result)
+    
     if global_rerun_on_update:
         rerun()
 
