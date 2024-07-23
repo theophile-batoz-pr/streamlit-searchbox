@@ -39,7 +39,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
     menu: false,
     selectedOption: null,
     selectedOptionList: [],
-    inputValue: this.props.args.optionSource,
+    inputValue: this.props.args.option_source,
   };
 
   private style = new SearchboxStyle(
@@ -125,7 +125,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
    */
   private callbackSubmit(option: Option) {
     this.setState((s, props) => {
-      if (this.props.args.isMulti) {
+      if (this.props.args.is_multi) {
         this.props.streamlitReturnFn("submit", (option as any as Option[]).map(({label}) => label));
       } else {
         this.props.streamlitReturnFn("submit", option.value);
@@ -157,7 +157,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
         menu: false,
         selectedOption: option,
         inputValue: input,
-        selectedOptionList: this.props.args.isMulti ? (option as any as Option[]) : s.selectedOptionList,
+        selectedOptionList: this.props.args.is_multi ? (option as any as Option[]) : s.selectedOptionList,
       }
       }
     });
@@ -181,17 +181,17 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
         this.props.streamlitReturnFn("search", this.state.inputValue)
         this.eventFired.current = "search"
         // hack for the absence of promise in streamlitReturnFn
-        waitUntil(() => this.props.args.optionSource === this.state.inputValue, 100).then(() => {
+        waitUntil(() => this.props.args.option_source === this.state.inputValue, 100).then(() => {
           this.setState({ menu: true })
         })
 
       }
     };
-    const cssPrefix = this.props.args.cssPrefix
+    const css_prefix = this.props.args.css_prefix
     const isLoading = this.eventFired.current === "search"
-      && this.props.args.optionSource !== this.state.inputValue
+      && this.props.args.option_source !== this.state.inputValue
     const optionList = this.props.args.options
-    const isMulti = this.props.args.isMulti
+    const is_multi = this.props.args.is_multi
     return (
       <>
       {this.props.args.searchBoxCss &&
@@ -199,12 +199,12 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
           {this.props.args.searchBoxCss} 
         </style>
       }
-      <div className={`${cssPrefix} searchBoxContainer`}>
+      <div className={`${css_prefix} searchBoxContainer`}>
         {this.props.args.title && (
-          <h1 className={`${cssPrefix} title`}>
-            {this.props.args.titlePicto &&
+          <h1 className={`${css_prefix} title`}>
+            {this.props.args.title_picto &&
               <span
-                id={`${cssPrefix} titlePicto`}
+                id={`${css_prefix} title_picto`}
                 dangerouslySetInnerHTML={{__html: this.props.args.titlePicto}}
               />
             }
@@ -212,21 +212,21 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
           </h1>
         )}
         {this.props.args.label && (
-          <div className={`${cssPrefix} label`} style={this.style.label}>{this.props.args.label}</div>
+          <div className={`${css_prefix} label`} style={this.style.label}>{this.props.args.label}</div>
         )}
-        <div className={`${cssPrefix} buttonRow`}>
+        <div className={`${css_prefix} buttonRow`}>
           <Select
             // showing the disabled react-select leads to the component
             // not showing the inputValue but just an empty input field
             // we therefore need to re-render the component if we want to keep the focus
-            value={isMulti ? this.state.selectedOptionList : this.state.selectedOption}
+            value={is_multi ? this.state.selectedOptionList : this.state.selectedOption}
             inputValue={editableAfterSubmit ? this.state.inputValue : undefined}
             isClearable={true}
             isSearchable={true}
             styles={this.style.select}
             options={optionList}
             placeholder={this.props.args.placeholder}
-            isMulti={isMulti}
+            is_multi={is_multi}
             // component overrides
             components={{
               // MultiValue
@@ -257,7 +257,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
                   this.callbackSubmit(option);
                   return;
                 case "remove-value":
-                  if (!this.props.args.isMulti) return
+                  if (!this.props.args.is_multi) return
                   this.eventFired.current = "submit"
                   this.callbackSubmit(option);
                   return;
@@ -287,17 +287,17 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
           />
           {this.props.args.button && (
             <button
-              className={`${cssPrefix} button`}
+              className={`${css_prefix} button`}
               onClick={() => {
                 this.eventFired.current = "button-click"
                 this.props.streamlitReturnFn("button-click", this.state.selectedOption?.label)
               }
               }
               >
-              {this.props.args.buttonPicto &&
+              {this.props.args.button_picto &&
                 <span
-                  className={`${cssPrefix} buttonPicto`}
-                  dangerouslySetInnerHTML={{__html: this.props.args.buttonPicto}}
+                  className={`${css_prefix} button_picto`}
+                  dangerouslySetInnerHTML={{__html: this.props.args.button_picto}}
                 />
               }
               {this.props.args.button}
@@ -343,13 +343,14 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
       })
     }
 
-    return <div className={`${this.props.args.cssPrefix ?? 'searchBox'} globalContainer`}>
-      {this.props.args.globalCss &&
+    return <div className={`${this.props.args.css_prefix ?? 'searchBox'} globalContainer`}>
+      {this.props.args.global_css &&
         <style>
-          {this.props.args.globalCss} 
+          {this.props.args.global_css} 
         </style>
       }
       {propsList.map((innerProps: any, index: number) => {
+        
         const streamlitReturnFn = (interaction: string, value: any) => {
           streamlitReturnGlobalFn(index, {interaction, value})
         }
