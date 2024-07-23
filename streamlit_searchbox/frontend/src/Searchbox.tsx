@@ -37,7 +37,7 @@ const Input = (props: any) => <components.Input {...props} isHidden={false} />;
 class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitReturnFn: (interaction: string, value: any) => void}, State> {
   public state: State = {
     menu: false,
-    selectedOption: null,
+    selectedOption: this.props.args.selected_value,
     selectedOptionList: [],
     inputValue: this.props.args.option_source,
   };
