@@ -8,7 +8,7 @@ import functools
 import logging
 import os
 import time
-from typing import Any, Callable, List, Literal, TypedDict
+from typing import Any, Callable, List, Literal, Tuple, TypedDict
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -169,8 +169,8 @@ def st_searchbox(
     label: str | None = None,
     title: str | None = None,
     button: str | None = None,
-    cssPrefix: str | None = None,
-    globalCss: str | None = None,
+    css_prefix: str | None = None,
+    global_css: str | None = None,
     on_button_click: Callable[[str], None] | None = None,
     default: Any = None,
     default_options: List[Any] | None = None,
@@ -228,11 +228,11 @@ def st_searchbox(
             "debounce": debounce,
             "title": title,
             "button": button,
-            "cssPrefix": cssPrefix,
-            "globalCss": globalCss,
+            "css_prefix": css_prefix,
+            "global_css": global_css,
             # react return state within streamlit session_state
             "key": st.session_state[key]["key_react"],
-            "optionSource": st.session_state[key]["search"]
+            "option_source": st.session_state[key]["search"]
         }]
     )
     if react_state is None:
@@ -279,11 +279,11 @@ SearchboxProps = TypedDict(
         "placeholder": str,
         "label": str | None,
         "title": str | None,
-        "titlePicto": str | None,
+        "title_picto": str | None,
         "button": str | None,
-        "buttonPicto": str | None,
-        "cssPrefix": str | None,
-        "globalCss": str | None,
+        "button_picto": str | None,
+        "css_prefix": str | None,
+        "global_css": str | None,
         "on_button_click": Callable[[str, Any], None] | None,
         "default": Any,
         "default_options": List[Any] | None,
@@ -293,13 +293,13 @@ SearchboxProps = TypedDict(
         "edit_after_submit": Literal["disabled", "current", "option", "concat"],
         "style_overrides": StyleOverrides | None,
         "key": str,
-        "isMulti": bool,
+        "is_multi": bool,
     },
     total=False,
 )
 
 
-def single_state(props_init, react_state, key, is_multi: bool = False) -> [Any, bool]:
+def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[Any, bool]:
     """We assume the input props and the result are array of the same size (should always be the case).
     The second return value is rerun_on_update (because we must do it only at the end).
     """
@@ -359,7 +359,7 @@ def st_searchbox_list(
     global_css_prefix: str | None = None,
     global_css: str | None = None,
     **kwargs,
-) -> Any:
+) -> List[Any]:
     """
     Create a list of searchbox instance, that provides suggestions based on the user input
     and returns a selected option or empty string if nothing was selected
@@ -402,10 +402,10 @@ def st_searchbox_list(
             "placeholder": props.get("placeholder", "Search ..."),
             "label": props.get("label", None),
             "title": props.get("title", None),
-            "titlePicto": props.get("titlePicto", None),
+            "title_picto": props.get("title_picto", None),
             "button": props.get("button", None),
-            "buttonPicto": props.get("buttonPicto", None),
-            "cssPrefix": props.get("cssPrefix", None),
+            "button_picto": props.get("button_picto", None),
+            "css_prefix": props.get("css_prefix", None),
             "searchBoxCss": props.get("searchBoxCss", None),
             "default": default,
             "default_options": default_options,
@@ -414,10 +414,10 @@ def st_searchbox_list(
             "debounce": props.get("debounce", 100),
             "edit_after_submit": props.get("edit_after_submit", "disabled"),
             "style_overrides": props.get("style_overrides", None),
-            "isMulti": props.get("isMulti", False),
+            "is_multi": props.get("is_multi", False),
             "key": st.session_state[key]["key_react"],
             "options": st.session_state[key]["options_js"],
-            "optionSource": st.session_state[key]["search"]
+            "option_source": st.session_state[key]["search"]
         }
         props_list_js.append(item)
         item_for_y = {
@@ -432,8 +432,8 @@ def st_searchbox_list(
     react_state_global = _get_react_component(
         key=global_key, #st.session_state[key]["key_react"],
         propsList=props_list_js,
-        cssPrefix=global_css_prefix,
-        globalCss=global_css
+        css_prefix=global_css_prefix,
+        global_css=global_css
     )
 
     def index_react_glob(idx: int):
@@ -449,7 +449,7 @@ def st_searchbox_list(
     global_rerun_on_update = False
     for idx, props in enumerate(props_list_py):
         key = props.get("key")
-        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("isMulti", False))
+        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("is_multi", False))
         global_rerun_on_update = global_rerun_on_update or rerun_on_update
         result.append(val)
     for idx, props in enumerate(props_list_py):

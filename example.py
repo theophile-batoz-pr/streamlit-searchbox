@@ -100,7 +100,7 @@ boxes = [
         edit_after_submit="option",
         title="qsdqd",
         button="qsdqd",
-        buttonPicto="""
+        button_picto="""
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect x="0.5" y="0.5" width="31" height="31" rx="3.5" fill="#013467" stroke="#013467"/>
 <mask id="mask0_971_57732" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="6" y="6" width="20" height="20">
@@ -111,7 +111,7 @@ boxes = [
 </g>
 </svg>
         """,
-        cssPrefix="XXXX",
+        css_prefix="XXXX",
         default_options=["inital", "list", "of", "options"],
         rerun_on_update=True,
         on_button_click=on_button_click,
@@ -344,7 +344,7 @@ with manual_example:
     )
 
     st.write(manual)
-globalCss="""
+global_css="""
         .title {
             color: purple
         }
@@ -381,9 +381,9 @@ globalCss="""
         """
 st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
     {**boxes[0], "key":"okokok-lqjjzbjfkfofof"}, {**boxes[0], "key":"okokok-mlqkjskdkmkqdlmk",
-            "isMulti": True, "clear_on_submit": False, "edit_after_submit": "option"   },
+            "is_multi": True, "clear_on_submit": False, "edit_after_submit": "option"   },
     {**boxes[0], "key":"okokok-kkklanzkjbjwdd",
-            "isMulti": True, "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=globalCss)
+            "is_multi": True, "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=global_css)
 
 ok = st.session_state.get("test_value")
 st.write(ok)
