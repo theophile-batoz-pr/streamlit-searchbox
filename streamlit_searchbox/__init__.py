@@ -447,7 +447,8 @@ def st_searchbox_list(
                 "is_multi": props.get("is_multi", False),
                 "key": st.session_state[key]["key_react"],
                 "options": st.session_state[key]["options_js"],
-                "option_source": st.session_state[key]["search"]
+                "option_source": st.session_state[key]["search"],
+                "selected_value": st.session_state[key]["result"]
             }
             props_list_js.append(item)
             item_for_y = {
