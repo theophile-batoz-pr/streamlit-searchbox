@@ -3,7 +3,7 @@ import {
   StreamlitComponentBase,
   withStreamlitConnection,
 } from "streamlit-component-lib";
-import React, { ReactNode, useCallback, useState } from "react";
+import React, { ReactNode } from "react";
 
 import SearchboxStyle from "./styling";
 import Select, { InputActionMeta, components } from "react-select";
@@ -226,7 +226,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             styles={this.style.select}
             options={optionList}
             placeholder={this.props.args.placeholder}
-            is_multi={is_multi}
+            isMulti={is_multi}
             // component overrides
             components={{
               // MultiValue
@@ -322,7 +322,7 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
     
     const streamlitReturnGlobalFn = (index: number, returnVal: {interaction: any, value: any}): void => {
       this.setState((s: (null | StreamlitReturn)[]) => {
-        // This workaround is made because streamlit has sa very weird tendency to turn
+        // This workaround is made because streamlit has a very weird tendency to turn
         // JS arrays into integer-indexed objects, with all the problems it brings.
         // This way we always have an array to work with (and always in sync with the widget number)
         const newState = this.props.args.propsList.map((_v: any, innerIndex: number) => {
@@ -353,6 +353,21 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
         
         const streamlitReturnFn = (interaction: string, value: any) => {
           streamlitReturnGlobalFn(index, {interaction, value})
+        }
+        if (innerProps.datetimepicker_props) {
+          const datetimepickerId = `input-dtpck-${innerProps.key}`
+          const css_prefix = innerProps.css_prefix
+          return <div className={`${css_prefix} datetimePickerContainer`}>
+            <label className={`${css_prefix} label`} >
+              {innerProps.label}
+            </label>
+            <input
+              id={datetimepickerId}
+              className={`${css_prefix} datetimePicker`}
+              {...innerProps.datetimepicker_props}
+              onChange={(e) => streamlitReturnFn("simple-value", e.target.value)}
+            />
+          </div>
         }
         return <SingleSearchBox
           key={innerProps.key}

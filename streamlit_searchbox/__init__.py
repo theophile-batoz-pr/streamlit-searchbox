@@ -8,7 +8,7 @@ import functools
 import logging
 import os
 import time
-from typing import Any, Callable, List, Literal, Tuple, TypedDict
+from typing import Any, Callable, List, Literal, Tuple, TypedDict, Union
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -272,6 +272,18 @@ def st_searchbox(
     # no new react interaction happened
     return st.session_state[key]["result"]
 
+DatetimepickerProps = TypedDict(
+    "DatetimepickerProps",
+    {
+        "datetimepicker_props": dict[str, str],
+        "key": str,
+        "label": str,
+        "min": str,
+        "max": str,
+        "global_css": str
+    },
+    total=False,
+)
 SearchboxProps = TypedDict(
     "SearchboxProps",
     {
@@ -312,7 +324,6 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
         return [None, True]
     if react_state is None:
         return [st.session_state[key]["result"], rerun_on_update]
-    search_function = props_init.get("search_function")
     rerun_on_update_arg = props_init.get("rerun_on_update", True)
 
     interaction, value = react_state["interaction"], react_state.get("value", None)
@@ -321,7 +332,14 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
         value_source = "result" if is_multi else "search"
         return [st.session_state[key][value_source], rerun_on_update]
 
+    if interaction == "simple-value":
+        return [value, False]
+        
     if interaction == "search":
+        search_function = props_init.get("search_function")
+        if search_function is None:
+            print(props_init)
+            raise ValueError(f"Unexpected empty search function for key={key}")
         # triggers rerun, no ops afterwards executed
         should_rerun = _process_search(search_function, key, value)
         rerun_on_update = rerun_on_update_arg and should_rerun
@@ -355,7 +373,7 @@ def button_click_handle(props_init, react_state, global_result: Any) -> None:
 
 def st_searchbox_list(
     global_key: str,
-    props_list: List[SearchboxProps],
+    props_list: List[Union[SearchboxProps, DatetimepickerProps]],
     global_css_prefix: str | None = None,
     global_css: str | None = None,
     **kwargs,
@@ -398,35 +416,47 @@ def st_searchbox_list(
         default_options = props.get("default_options", None)
         if key not in st.session_state:
             _set_defaults(key, default, default_options)
-        item = {
-            "placeholder": props.get("placeholder", "Search ..."),
-            "label": props.get("label", None),
-            "title": props.get("title", None),
-            "title_picto": props.get("title_picto", None),
-            "button": props.get("button", None),
-            "button_picto": props.get("button_picto", None),
-            "css_prefix": props.get("css_prefix", None),
-            "searchBoxCss": props.get("searchBoxCss", None),
-            "default": default,
-            "default_options": default_options,
-            "clear_on_submit": props.get("clear_on_submit", False),
-            "rerun_on_update": props.get("rerun_on_update", True),
-            "debounce": props.get("debounce", 100),
-            "edit_after_submit": props.get("edit_after_submit", "disabled"),
-            "style_overrides": props.get("style_overrides", None),
-            "is_multi": props.get("is_multi", False),
-            "key": st.session_state[key]["key_react"],
-            "options": st.session_state[key]["options_js"],
-            "option_source": st.session_state[key]["search"]
-        }
-        props_list_js.append(item)
-        item_for_y = {
-            **item,
-            "key": key,
-            "search_function": props.get("search_function"),
-            "on_button_click": props.get("on_button_click", None)
-        }
-        props_list_py.append(item_for_y)
+        is_special_input = props.get("datetimepicker_props")
+
+        if isinstance(is_special_input, dict):
+            item = {
+                "datetimepicker_props": props.get("datetimepicker_props", {}),
+                "key": props.get("key"),
+                "label": props.get("label"),
+                "global_css": props.get("global_css")
+                }
+            props_list_py.append(item)
+            props_list_js.append(item)
+        else:
+            item = {
+                "placeholder": props.get("placeholder", "Search ..."),
+                "label": props.get("label", None),
+                "title": props.get("title", None),
+                "title_picto": props.get("title_picto", None),
+                "button": props.get("button", None),
+                "button_picto": props.get("button_picto", None),
+                "css_prefix": props.get("css_prefix", None),
+                "searchBoxCss": props.get("searchBoxCss", None),
+                "default": default,
+                "default_options": default_options,
+                "clear_on_submit": props.get("clear_on_submit", False),
+                "rerun_on_update": props.get("rerun_on_update", True),
+                "debounce": props.get("debounce", 100),
+                "edit_after_submit": props.get("edit_after_submit", "disabled"),
+                "style_overrides": props.get("style_overrides", None),
+                "is_multi": props.get("is_multi", False),
+                "key": st.session_state[key]["key_react"],
+                "options": st.session_state[key]["options_js"],
+                "option_source": st.session_state[key]["search"]
+            }
+            props_list_js.append(item)
+            item_for_y = {
+                **item,
+                "key": key,
+                "search_function": props.get("search_function"),
+                "on_button_click": props.get("on_button_click", None)
+            }
+            props_list_py.append(item_for_y)
 
     # everything here is passed to react as this.props.args
     react_state_global = _get_react_component(
