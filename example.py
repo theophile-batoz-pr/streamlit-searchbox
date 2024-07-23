@@ -56,8 +56,18 @@ def search(searchterm: str) -> List[str]:
 
 
 def search_rnd_delay(searchterm: str) -> List[str]:
-    time.sleep(random.randint(1, 5))
-    return [f"{searchterm}_{i}" for i in range(10)]
+    time.sleep(9/random.randint(10, 100))
+    # okok = lambda i: f"{random.randint(100000, 999999)}"
+    res = []
+    index = 0    
+    for elem in range(100000, 999999, 1):
+        ok = f"{elem}"
+        # if searchterm != "" and searchterm in ok:
+        #     print(searchterm, ok)
+        if (searchterm in ok or searchterm == "") and index < 10:
+            index += 1
+            res.append(ok)
+    return res
 
 
 def search_enum_return(_: str):
@@ -90,7 +100,8 @@ def on_button_click(val: str, global_value: Any) -> None:
 # will pass all kwargs to the searchbox component
 boxes = [
     dict(
-        search_function=search_wikipedia_ids,
+        search_function=search_rnd_delay,
+        default_options=search_rnd_delay(""),
         placeholder="Search Wikipedia",
         label=search_wikipedia_ids.__name__,
         default="SOME DEFAULT",
@@ -112,7 +123,6 @@ boxes = [
 </svg>
         """,
         css_prefix="XXXX",
-        default_options=["inital", "list", "of", "options"],
         rerun_on_update=True,
         on_button_click=on_button_click,
         style_overrides={
@@ -259,91 +269,91 @@ searchboxes, visual_ref, form_example, manual_example = st.tabs(
     ["Searchboxes", "Visual Reference", "Form Example", "Manual Example"]
 )
 
-with searchboxes:
-    # iterate over boxes in groups of 3, fit into columns
-    for box_l in [boxes[i : i + 2] for i in range(0, len(boxes), 2)]:
-        cols = st.columns(2)
+# with searchboxes:
+#     # iterate over boxes in groups of 3, fit into columns
+#     for box_l in [boxes[i : i + 2] for i in range(0, len(boxes), 2)]:
+#         cols = st.columns(2)
 
-        for i, box in enumerate(box_l):
-            with cols[i]:
-                selected_value = st_searchbox(**box)  # type: ignore
+#         for i, box in enumerate(box_l):
+#             with cols[i]:
+#                 selected_value = st_searchbox(**box)  # type: ignore
 
-                if selected_value:
-                    st.info(f"{selected_value} {type(selected_value)}")
+#                 if selected_value:
+#                     st.info(f"{selected_value} {type(selected_value)}")
 
-        st.markdown("---")
+#         st.markdown("---")
 
-    st_searchbox(
-        search_function=search,
-        key=f"{search.__name__}_style_manual",
-        style_overrides={
-            "clear": {
-                "width": 20,
-                "height": 20,
-                "icon": "circle-unfilled",
-                "stroke-width": 2,
-                "stroke": "red",
-            },
-            "dropdown": {
-                "rotate": True,
-                "width": 30,
-                "height": 30,
-            },
-            "searchbox": {
-                "menuList": {"backgroundColor": "transparent"},
-                "singleValue": {"color": "red", "some": "data"},
-                "option": {"color": "blue", "backgroundColor": "yellow"},
-            },
-        },
-    )
+    # st_searchbox(
+    #     search_function=search,
+    #     key=f"{search.__name__}_style_manual",
+    #     style_overrides={
+    #         "clear": {
+    #             "width": 20,
+    #             "height": 20,
+    #             "icon": "circle-unfilled",
+    #             "stroke-width": 2,
+    #             "stroke": "red",
+    #         },
+    #         "dropdown": {
+    #             "rotate": True,
+    #             "width": 30,
+    #             "height": 30,
+    #         },
+    #         "searchbox": {
+    #             "menuList": {"backgroundColor": "transparent"},
+    #             "singleValue": {"color": "red", "some": "data"},
+    #             "option": {"color": "blue", "backgroundColor": "yellow"},
+    #         },
+    #     },
+    # )
 
 
-with visual_ref:
-    st.multiselect(
-        "Multiselect",
-        [1, 2, 3, 4, 5],
-        default=[1, 2],
-        key="multiselect",
-    )
-    st.selectbox(
-        "Selectbox",
-        [1, 2, 3],
-        index=1,
-        key="selectbox",
-    )
+# with visual_ref:
+#     st.multiselect(
+#         "Multiselect",
+#         [1, 2, 3, 4, 5],
+#         default=[1, 2],
+#         key="multiselect",
+#     )
+#     st.selectbox(
+#         "Selectbox",
+#         [1, 2, 3],
+#         index=1,
+#         key="selectbox",
+#     )
 
-with form_example:
-    with st.form("myform"):
-        c1, c2 = st.columns(2)
-        with c1:
-            sr = st_searchbox(
-                search_function=search,
-                key=f"{search.__name__}_form",
-            )
-        with c2:
-            st.form_submit_button("load suggestions")
+# with form_example:
+#     with st.form("myform"):
+#         c1, c2 = st.columns(2)
+#         with c1:
+#             sr = st_searchbox(
+#                 search_function=search,
+#                 key=f"{search.__name__}_form",
+#             )
+#         with c2:
+#             st.form_submit_button("load suggestions")
 
-        submit = st.form_submit_button("real submit")
-        if submit:
-            st.write("form submitted")
-            st.write(sr)
+#         submit = st.form_submit_button("real submit")
+#         if submit:
+#             st.write("form submitted")
+#             st.write(sr)
 
-with manual_example:
-    key = f"{search.__name__}_manual"
+# with manual_example:
+#     key = f"{search.__name__}_manual"
 
-    if key in st.session_state:
-        st.session_state[key]["options_js"] = [
-            {"label": f"{st.session_state[key]['search']}_{i}", "value": i}
-            for i in range(5)
-        ]
-        st.session_state[key]["options_py"] = [i for i in range(5)]
+#     if key in st.session_state:
+#         st.session_state[key]["options_js"] = [
+#             {"label": f"{st.session_state[key]['search']}_{i}", "value": i}
+#             for i in range(5)
+#         ]
+#         st.session_state[key]["options_py"] = [i for i in range(5)]
 
-    manual = st_searchbox(
-        search_function=lambda _: [],
-        key=key,
-    )
+#     manual = st_searchbox(
+#         search_function=lambda _: [],
+#         key=key,
+#     )
 
-    st.write(manual)
+#     st.write(manual)
 global_css="""
         .title {
             color: purple
@@ -352,6 +362,13 @@ global_css="""
             # background: #DAE4F4;
             # border: 1px solid rgba(49, 51, 63, 0.2);
             # border-radius: 0.3rem;
+            padding: 1em;
+            # display: flex;
+        }
+        .datetimePickerContainer {
+            background: #DAE4F4;
+            border: 1px solid rgba(49, 51, 63, 0.2);
+            border-radius: 0.3rem;
             padding: 1em;
             # display: flex;
         }
@@ -380,8 +397,11 @@ global_css="""
         }
         """
 st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
-    {**boxes[0], "key":"okokok-lqjjzbjfkfofof"}, {**boxes[0], "key":"okokok-mlqkjskdkmkqdlmk",
-            "is_multi": True, "clear_on_submit": False, "edit_after_submit": "option"   },
+    {**boxes[0], "key":"okokok-sss"},
+    {
+        "key":"okokok-mlqkjskdkmkqdlmk",
+        "datetimepicker_props": {"type": "datetime-local"}
+    },
     {**boxes[0], "key":"okokok-kkklanzkjbjwdd",
             "is_multi": True, "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=global_css)
 
