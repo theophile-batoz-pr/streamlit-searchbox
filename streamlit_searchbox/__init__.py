@@ -64,10 +64,12 @@ def _list_to_options_js(
     """
     unpack search options for use in react component
     """
+    if len(options) > 0 and isinstance(options[0], dict) and options[0].get("label"):
+        return options
     return [
         {
             "label": str(v[0]) if isinstance(v, tuple) else str(v),
-            "value": i,
+            "value": str(v[0]) if isinstance(v, tuple) else str(v),
         }
         for i, v in enumerate(options)
     ]
@@ -104,17 +106,16 @@ def _set_defaults(
         # updated after each selection / reset
         "result": default,
         # updated after each search keystroke
-        "search": "",
+        "search": default,
         # updated after each search_function run
-        "options_js": [],
+        "options_js": [{"value": 0, "label": default}],
         # key that is used by react component, use time suffix to reload after clear
         "key_react": key_react,
     }
 
-    if default_options:
+    if not default and default_options:
         st.session_state[key]["options_js"] = _list_to_options_js(default_options)
         st.session_state[key]["options_py"] = _list_to_options_py(default_options)
-
 
 ClearStyle = TypedDict(
     "ClearStyle",
@@ -353,8 +354,7 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
 
     if interaction == "reset":
         _set_defaults(key, default, default_options)
-        if st.session_state[key]["search"] != "":
-            rerun_on_update = rerun_on_update_arg
+        # rerun_on_update = rerun_on_update_arg
         return [default, rerun_on_update]
 
     return [st.session_state[key]["search"], rerun_on_update]
@@ -428,6 +428,10 @@ def st_searchbox_list(
             props_list_py.append(item)
             props_list_js.append(item)
         else:
+            selected_value = {
+                "label": st.session_state[key]["result"],
+                "value": st.session_state[key]["result"]
+                }
             item = {
                 "placeholder": props.get("placeholder", "Search ..."),
                 "label": props.get("label", None),
@@ -436,9 +440,9 @@ def st_searchbox_list(
                 "button": props.get("button", None),
                 "button_picto": props.get("button_picto", None),
                 "css_prefix": props.get("css_prefix", None),
-                "searchBoxCss": props.get("searchBoxCss", None),
+                "search_box_css": props.get("search_box_css", None),
                 "default": default,
-                "default_options": default_options,
+                "default_options": _list_to_options_js(default_options),
                 "clear_on_submit": props.get("clear_on_submit", False),
                 "rerun_on_update": props.get("rerun_on_update", True),
                 "debounce": props.get("debounce", 100),
@@ -448,11 +452,12 @@ def st_searchbox_list(
                 "key": st.session_state[key]["key_react"],
                 "options": st.session_state[key]["options_js"],
                 "option_source": st.session_state[key]["search"],
-                "selected_value": st.session_state[key]["result"]
+                "selected_value": selected_value
             }
             props_list_js.append(item)
             item_for_y = {
                 **item,
+                "default_options": _list_to_options_py(default_options),
                 "key": key,
                 "search_function": props.get("search_function"),
                 "on_button_click": props.get("on_button_click", None)
