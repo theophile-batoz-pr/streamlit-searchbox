@@ -38,7 +38,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
   public state: State = {
     menu: false,
     selectedOption: this.props.args.selected_value,
-    selectedOptionList: [],
+    selectedOptionList: this.props.args.selected_value_list,
     inputValue: this.props.args.option_source,
   };
 

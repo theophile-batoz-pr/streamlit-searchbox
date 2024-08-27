@@ -403,7 +403,7 @@ st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
         "datetimepicker_props": {"type": "datetime-local"}
     },
     {**boxes[0], "key":"okokok-kkklanzkjbjwdd",
-            "is_multi": True, "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=global_css)
+            "is_multi": True, "default": ["100000", "lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=global_css)
 
 ok = st.session_state.get("test_value")
 st.write(ok)
