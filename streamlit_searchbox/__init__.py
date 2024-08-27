@@ -104,11 +104,11 @@ def _set_defaults(
     key_react = st.session_state.get(key, {}).get("key_react", default_key_react)
     st.session_state[key] = {
         # updated after each selection / reset
-        "result": default,
+        "result": default if default is not None else None,
         # updated after each search keystroke
-        "search": default,
+        "search": default if default is not None else "",
         # updated after each search_function run
-        "options_js": [{"value": 0, "label": default}],
+        "options_js": [{"value": 0, "label": default}] if default is not None else [],
         # key that is used by react component, use time suffix to reload after clear
         "key_react": key_react,
     }
@@ -428,10 +428,11 @@ def st_searchbox_list(
             props_list_py.append(item)
             props_list_js.append(item)
         else:
+            raw_selected_value = st.session_state[key]["result"]
             selected_value = {
-                "label": st.session_state[key]["result"],
-                "value": st.session_state[key]["result"]
-                }
+                "label": raw_selected_value,
+                "value": raw_selected_value
+                } if raw_selected_value is not None else None
             item = {
                 "placeholder": props.get("placeholder", "Search ..."),
                 "label": props.get("label", None),
