@@ -128,7 +128,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
       if (this.props.args.is_multi) {
         this.props.streamlitReturnFn("submit", (option as any as Option[]).map(({label}) => label));
       } else {
-        this.props.streamlitReturnFn("submit", option.value);
+        this.props.streamlitReturnFn("submit", option.label);
       }
       if (props.args.clear_on_submit) {
         return ({
@@ -190,13 +190,15 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
     const css_prefix = this.props.args.css_prefix
     const isLoading = this.eventFired.current === "search"
       && this.props.args.option_source !== this.state.inputValue
-    const optionList = this.props.args.options
+    const optionList = this.state.inputValue === "" ?
+      this.props.args.default_options
+      : this.props.args.options
     const is_multi = this.props.args.is_multi
     return (
       <>
-      {this.props.args.searchBoxCss &&
+      {this.props.args.search_box_css &&
         <style>
-          {this.props.args.searchBoxCss} 
+          {this.props.args.search_box_css} 
         </style>
       }
       <div className={`${css_prefix} searchBoxContainer`}>
@@ -205,7 +207,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             {this.props.args.title_picto &&
               <span
                 id={`${css_prefix} title_picto`}
-                dangerouslySetInnerHTML={{__html: this.props.args.titlePicto}}
+                dangerouslySetInnerHTML={{__html: this.props.args.title_picto}}
               />
             }
             {this.props.args.title}
@@ -283,7 +285,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             onMenuOpen={() => this.setState({ menu: true })}
             onMenuClose={() => this.setState({ menu: false })}
             isLoading={isLoading}
-            menuIsOpen={this.props.args.options && this.state.menu}
+            menuIsOpen={optionList && this.state.menu}
           />
           {this.props.args.button && (
             <button
