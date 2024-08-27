@@ -97,6 +97,7 @@ def _process_search(
 
 def _set_defaults(
     key: str,
+    is_multi: bool,
     default: Any,
     default_options: List[Any] | None = None,
 ) -> None:
@@ -106,9 +107,9 @@ def _set_defaults(
         # updated after each selection / reset
         "result": default if default is not None else None,
         # updated after each search keystroke
-        "search": default if default is not None else "",
+        "search": default if default is not None and not is_multi else "",
         # updated after each search_function run
-        "options_js": [{"value": 0, "label": default}] if default is not None else [],
+        "options_js": [{"value": default, "label": default}] if default is not None else [],
         # key that is used by react component, use time suffix to reload after clear
         "key_react": key_react,
     }
@@ -214,7 +215,7 @@ def st_searchbox(
     """
 
     if key not in st.session_state:
-        _set_defaults(key, default, default_options)
+        _set_defaults(key, False, default, default_options)
 
     # everything here is passed to react as this.props.args
     react_state = _get_react_component(
@@ -263,7 +264,7 @@ def st_searchbox(
         return st.session_state[key]["result"]
 
     if interaction == "reset":
-        _set_defaults(key, default, default_options)
+        _set_defaults(key, False, default, default_options)
 
         if rerun_on_update:
             rerun()
@@ -321,7 +322,7 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
     default_options = props_init.get("default_options")
 
     if key not in st.session_state:
-        _set_defaults(key, default, default_options)
+        _set_defaults(key, is_multi, default, default_options)
         return [None, True]
     if react_state is None:
         return [st.session_state[key]["result"], rerun_on_update]
@@ -353,7 +354,7 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
         return [actual_value, rerun_on_update]
 
     if interaction == "reset":
-        _set_defaults(key, default, default_options)
+        _set_defaults(key, is_multi, default, default_options)
         # rerun_on_update = rerun_on_update_arg
         return [default, rerun_on_update]
 
@@ -414,10 +415,10 @@ def st_searchbox_list(
         key = props.get("key", "searchbox")
         default = props.get("default", None)
         default_options = props.get("default_options", None)
+        is_multi = props.get("is_multi", False)
         if key not in st.session_state:
-            _set_defaults(key, default, default_options)
+            _set_defaults(key, is_multi, default, default_options)
         is_special_input = props.get("datetimepicker_props")
-
         if isinstance(is_special_input, dict):
             item = {
                 "datetimepicker_props": props.get("datetimepicker_props", {}),
@@ -429,10 +430,18 @@ def st_searchbox_list(
             props_list_js.append(item)
         else:
             raw_selected_value = st.session_state[key]["result"]
-            selected_value = {
-                "label": raw_selected_value,
-                "value": raw_selected_value
-                } if raw_selected_value is not None else None
+            selected_value = None 
+            selected_value_list = [] 
+            if not is_multi and raw_selected_value is not None:
+                selected_value = {
+                    "label": raw_selected_value,
+                    "value": raw_selected_value
+                    }
+            if is_multi and isinstance(raw_selected_value, list):
+                selected_value_list = [{
+                    "label": r,
+                    "value": r
+                    } for r in raw_selected_value]
             item = {
                 "placeholder": props.get("placeholder", "Search ..."),
                 "label": props.get("label", None),
@@ -449,11 +458,12 @@ def st_searchbox_list(
                 "debounce": props.get("debounce", 100),
                 "edit_after_submit": props.get("edit_after_submit", "disabled"),
                 "style_overrides": props.get("style_overrides", None),
-                "is_multi": props.get("is_multi", False),
+                "is_multi": is_multi,
                 "key": st.session_state[key]["key_react"],
                 "options": st.session_state[key]["options_js"],
                 "option_source": st.session_state[key]["search"],
-                "selected_value": selected_value
+                "selected_value": selected_value,
+                "selected_value_list": selected_value_list
             }
             props_list_js.append(item)
             item_for_y = {
