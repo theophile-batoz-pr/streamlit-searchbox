@@ -300,6 +300,7 @@ SearchboxProps = TypedDict(
         "global_css": str | None,
         "on_button_click": Callable[[str, Any], None] | None,
         "default": Any,
+        "persistant_default": bool,
         "default_options": List[Any] | None,
         "clear_on_submit": bool,
         "rerun_on_update": bool,
@@ -354,7 +355,8 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
         return [actual_value, rerun_on_update]
 
     if interaction == "reset":
-        _set_defaults(key, is_multi, default, default_options)
+        persistant_default = props_init.get("persistant_default", False)
+        _set_defaults(key, is_multi, default if persistant_default else None, default_options)
         # rerun_on_update = rerun_on_update_arg
         return [default, rerun_on_update]
 
@@ -452,6 +454,7 @@ def st_searchbox_list(
                 "css_prefix": props.get("css_prefix", None),
                 "search_box_css": props.get("search_box_css", None),
                 "default": default,
+                "persistant_default": props.get("persistant_default", False),
                 "default_options": _list_to_options_js(default_options),
                 "clear_on_submit": props.get("clear_on_submit", False),
                 "rerun_on_update": props.get("rerun_on_update", True),
