@@ -109,7 +109,7 @@ def _set_defaults(
         # updated after each search keystroke
         "search": default if default is not None and not is_multi else "",
         # updated after each search_function run
-        "options_js": [{"value": default, "label": default}] if default is not None else [],
+        "options_js": [{"value": default, "label": default}] if (default is not None and not is_multi) else default_options,
         # key that is used by react component, use time suffix to reload after clear
         "key_react": key_react,
     }
@@ -264,7 +264,7 @@ def st_searchbox(
         return st.session_state[key]["result"]
 
     if interaction == "reset":
-        _set_defaults(key, False, default, default_options)
+        _set_defaults(key, False, None, default_options)
 
         if rerun_on_update:
             rerun()
@@ -349,16 +349,16 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
 
     if interaction == "submit":
         actual_value = value
-        if not is_multi:
-            st.session_state[key]["search"] = actual_value
+        st.session_state[key]["search"] = actual_value if not is_multi else ""
         st.session_state[key]["result"] = actual_value
         return [actual_value, rerun_on_update]
 
     if interaction == "reset":
         persistant_default = props_init.get("persistant_default", False)
-        _set_defaults(key, is_multi, default if persistant_default else None, default_options)
+        result_val = default if persistant_default else ([] if is_multi else None)
+        _set_defaults(key, is_multi, result_val, default_options)
         # rerun_on_update = rerun_on_update_arg
-        return [default, rerun_on_update]
+        return [result_val, rerun_on_update]
 
     return [st.session_state[key]["search"], rerun_on_update]
 

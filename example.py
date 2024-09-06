@@ -64,7 +64,7 @@ def search_rnd_delay(searchterm: str) -> List[str]:
         ok = f"{elem}"
         # if searchterm != "" and searchterm in ok:
         #     print(searchterm, ok)
-        if (searchterm in ok or searchterm == "") and index < 10:
+        if ((searchterm in ok) or searchterm == "") and index < 10:
             index += 1
             res.append(ok)
     return res
@@ -402,8 +402,13 @@ st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
         "key":"okokok-mlqkjskdkmkqdlmk",
         "datetimepicker_props": {"type": "datetime-local"}
     },
-    {**boxes[0], "key":"okokok-kkklanzkjbjwdd",
-            "is_multi": True, "default": ["100000", "lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "option"   }], global_css=global_css)
+    {**boxes[0], "key":"okokok-iuiuiui",
+            "is_multi": True, "default": ["100000", "lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "current"   },
+    {**boxes[0], "key":"okokok-sdffffffff",
+            "is_multi": True, "default": ["100000"], "persistant_default": False, "clear_on_submit": False, "edit_after_submit": "current"   },
+    {**boxes[0], "key":"okokok-aaaaaaaaa",
+            "is_multi": True, "default": ["lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "current"   },
+    ], global_css=global_css)
 
 ok = st.session_state.get("test_value")
 st.write(ok)
