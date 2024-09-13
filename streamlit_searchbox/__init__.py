@@ -8,6 +8,7 @@ import functools
 import logging
 import os
 import time
+import asyncio
 from typing import Any, Callable, List, Literal, Tuple, TypedDict, Union
 
 import streamlit as st
@@ -496,18 +497,35 @@ def st_searchbox_list(
             return react_state_global[idx]
         return None
     result = []
+    global_rerun_on_update_list = []
     
-    global_rerun_on_update = False
-    for idx, props in enumerate(props_list_py):
+    async def gather_result (idx, props):
         key = props.get("key")
         [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("is_multi", False))
-        global_rerun_on_update = global_rerun_on_update or rerun_on_update
+        global_rerun_on_update_list.append(rerun_on_update)
         result.append(val)
+    async def gather():
+        tasks = [gather_result(idx, props) for idx, props in enumerate(props_list_py)]
+        await asyncio.gather(*tasks)
+    ok = asyncio.run(gather())
     for idx, props in enumerate(props_list_py):
         button_click_handle(props, index_react_glob(idx), result)
-    
-    if global_rerun_on_update:
-        rerun()
+    for rerun_on_update in global_rerun_on_update_list:
+        if rerun_on_update:
+            rerun()
+            break
 
     # no new react interaction happened
     return result
+
+def get_or_create_eventloop():
+    try:
+        return asyncio.get_event_loop()
+    except RuntimeError as ex:
+        if "There is no current event loop in thread" in str(ex):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return asyncio.get_event_loop()
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
