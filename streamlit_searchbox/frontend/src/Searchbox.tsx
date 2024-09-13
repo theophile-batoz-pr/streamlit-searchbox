@@ -3,7 +3,7 @@ import {
   StreamlitComponentBase,
   withStreamlitConnection,
 } from "streamlit-component-lib";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 
 import SearchboxStyle from "./styling";
 import Select, { InputActionMeta, components } from "react-select";
@@ -359,17 +359,13 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
         if (innerProps.datetimepicker_props) {
           const datetimepickerId = `input-dtpck-${innerProps.key}`
           const css_prefix = innerProps.css_prefix
-          return <div className={`${css_prefix} datetimePickerContainer`}>
-            <label className={`${css_prefix} label`} >
-              {innerProps.label}
-            </label>
-            <input
-              id={datetimepickerId}
-              className={`${css_prefix} datetimePicker`}
-              {...innerProps.datetimepicker_props}
-              onChange={(e) => streamlitReturnFn("simple-value", e.target.value)}
+          return <SimpleDatetimePicker
+            defaultVal={innerProps.default as string}
+            css_prefix={css_prefix}
+            innerProps={innerProps}
+            datetimepickerId={datetimepickerId}
+            streamlitReturnFn={streamlitReturnFn}
             />
-          </div>
         }
         return <SingleSearchBox
           key={innerProps.key}
@@ -394,4 +390,32 @@ function waitUntil (check: () => boolean, baseMs: number = 10): Promise<void> {
       }
     }, baseMs)
   })
+}
+
+
+function SimpleDatetimePicker({defaultVal, css_prefix, innerProps, datetimepickerId, streamlitReturnFn}: {
+  defaultVal: string;
+  css_prefix: string;
+  innerProps: any;
+  datetimepickerId: string;
+  streamlitReturnFn: ((a: string, e: any) => any);
+}) {
+  const [value, setValue] = useState(defaultVal)
+  console.log("defaultVal", defaultVal)
+  console.log("value", value)
+  return <div className={`${css_prefix} datetimePickerContainer`}>
+    <label className={`${css_prefix} label`} >
+      {innerProps.label}
+    </label>
+    <input
+      id={datetimepickerId}
+      className={`${css_prefix} datetimePicker`}
+      {...innerProps.datetimepicker_props}
+      value={value}
+      onChange={(e) => setValue(() => {
+        setValue(e.target.value)
+        return streamlitReturnFn("simple-value", e.target.value)
+      })}
+    />
+  </div>
 }

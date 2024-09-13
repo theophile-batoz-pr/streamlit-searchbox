@@ -425,6 +425,7 @@ def st_searchbox_list(
             item = {
                 "datetimepicker_props": props.get("datetimepicker_props", {}),
                 "key": props.get("key"),
+                "default": props.get("default"),
                 "label": props.get("label"),
                 "global_css": props.get("global_css")
                 }
