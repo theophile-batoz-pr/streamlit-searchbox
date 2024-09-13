@@ -400,12 +400,17 @@ st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
     {**boxes[0], "key":"okokok-sss"},
     {
         "key":"okokok-mlqkjskdkmkqdlmk",
+        "default": "2024-09-13T00:46",
         "datetimepicker_props": {"type": "datetime-local"}
     },
-    {**boxes[0], "key":"okokok-iuiuiui",
-            "is_multi": True, "default": ["100000", "lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "current"   },
-    {**boxes[0], "key":"okokok-sdffffffff",
-            "is_multi": True, "default": ["100000"], "persistant_default": False, "clear_on_submit": False, "edit_after_submit": "current"   },
+    {
+        "key":"okokok-ssswwaz",
+        "datetimepicker_props": {"type": "datetime-local"}
+    },
+        {
+        "key":"okokok-dqsd",
+        "datetimepicker_props": {"type": "datetime-local"}
+    },
     {**boxes[0], "key":"okokok-aaaaaaaaa",
             "is_multi": True, "default": ["lkqjslkjd"], "clear_on_submit": False, "edit_after_submit": "current"   },
     ], global_css=global_css)
