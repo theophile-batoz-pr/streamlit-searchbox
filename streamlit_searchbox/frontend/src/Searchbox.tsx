@@ -1,9 +1,10 @@
 import {
   Streamlit,
   StreamlitComponentBase,
+  Theme,
   withStreamlitConnection,
 } from "streamlit-component-lib";
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useCallback, useMemo, useState } from "react";
 
 import SearchboxStyle from "./styling";
 import Select, { InputActionMeta, components } from "react-select";
@@ -25,38 +26,50 @@ interface StreamlitReturn {
   value: any;
   isChangeSource?: boolean
 }
+type StreamlitFnType = (interaction: StreamlitReturn["interaction"], value: any) => void
+
 const Input = (props: any) => <components.Input {...props} isHidden={false} />;
 
-// export function streamlitReturn(interaction: string, value: any): void {
-//   Streamlit.setComponentValue({
-//     interaction: interaction,
-//     value: value,
-//   } as StreamlitReturn);
-// }
+function SingleSearchBox(props: {theme: any, args: any, streamlitReturnFn: StreamlitFnType}) {
 
-class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitReturnFn: (interaction: string, value: any) => void}, State> {
-  public state: State = {
+  const args = props.args
+  const streamlitReturnFn = props.streamlitReturnFn
+  const {
+    option_source,
+    css_prefix,
+    default_options,
+    options,
+    is_multi,
+    search_box_css,
+    title,
+    title_picto,
+    label,
+    placeholder,
+    edit_after_submit,
+    style_overrides,
+    clear_on_submit,
+    debounce,
+    button,
+    button_picto,
+    selected_value,
+    selected_value_list,
+  } = args
+  const editableAfterSubmit =
+    edit_after_submit !== "disabled";
+  const [state, setState] = useState<State>(() => ({
     menu: false,
-    selectedOption: this.props.args.selected_value,
-    selectedOptionList: this.props.args.selected_value_list,
-    inputValue: this.props.args.option_source,
-  };
-
-  private style = new SearchboxStyle(
-    this.props.theme,
-    this.props.args.style_overrides?.searchbox || {},
-    this.props.args.style_overrides || {}
-  );
-  private ref: any = React.createRef();
-  /**
-   * The last event fired, before any processing whatsoever.
-   */
-  private eventFired = React.createRef() as React.MutableRefObject<StreamlitReturn["interaction"] | undefined>
-
-  /**
-   * Number is the timeoutID, to cancel it if need be.
-   */
-  private lastSearchUpdate: any = React.createRef<{
+    selectedOption: selected_value,
+    selectedOptionList: selected_value_list,
+    inputValue: option_source,
+  }))
+  const style = useMemo(() => new SearchboxStyle(
+    props.theme,
+    style_overrides?.searchbox || {},
+    style_overrides || {}
+  ), [props.theme, style_overrides])
+  const ref: any = React.createRef();
+  const eventFired = React.createRef() as React.MutableRefObject<StreamlitReturn["interaction"] | undefined>
+  const lastSearchUpdate: any = React.createRef<{
     value: string,
     timeout: {
       id: number,
@@ -64,23 +77,16 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
     }
   } | undefined>();
 
-  /**
-   * new keystroke on searchbox
-   * @param input
-   * @param _
-   * @returns
-   */
-  private callbackSearch = (input: string): void => {
+  const callbackSearch = useCallback((input: string, debounce: number, streamlitReturnFn: StreamlitFnType): void => {
 
     const now = Date.now()
     const newValue = {
       value: input,
       timeout: (undefined as any)
     }
-    const debounce = this.props.args.debounce
     let resetTimeout = true
-    if (this.lastSearchUpdate.current) {
-      const {timeout} = this.lastSearchUpdate.current
+    if (lastSearchUpdate.current) {
+      const {timeout} = lastSearchUpdate.current
       const {id, createdAt} = timeout
       newValue.timeout = timeout
       if (now - createdAt > debounce - 10) {
@@ -93,44 +99,37 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
       newValue.timeout = {
         createdAt: now,
         id: setTimeout(() => {
-          this.props.streamlitReturnFn("search", this.lastSearchUpdate.current?.value);
+          streamlitReturnFn("search", lastSearchUpdate.current?.value);
         }, debounce)
       }
     }
-    this.lastSearchUpdate.current = newValue
-    this.setState((s) => ({
+    lastSearchUpdate.current = newValue
+    setState((s) => ({
       inputValue: input,
       selectedOption: null,
       selectedOptionList: s.selectedOptionList,
+      menu: s.menu
     }));
-  };
-
-  /**
-   * reset button was clicked
-   */
-  private callbackReset(): void {
-    this.setState({
-      menu: false,
-      selectedOption: null,
-      selectedOptionList: [],
-      inputValue: "",
-    });
-
-    this.props.streamlitReturnFn("reset", "");
-  }
-
-  /**
-   * submitted selection, clear optionally
-   * @param option
-   */
-  private callbackSubmit(option: Option) {
-    this.setState((s, props) => {
-      if (this.props.args.is_multi) {
-        this.props.streamlitReturnFn("submit", (option as any as Option[]).map(({label}) => label));
-      } else {
-        this.props.streamlitReturnFn("submit", option.label);
+  }, [lastSearchUpdate])
+  const callbackReset = useCallback(() => {
+    setState(() => {
+      streamlitReturnFn("reset", "");
+      return {
+        menu: false,
+        selectedOption: null,
+        selectedOptionList: [],
+        inputValue: "",
       }
-      if (props.args.clear_on_submit) {
+    });
+  }, [streamlitReturnFn])
+  const callbackSubmit = useCallback((option: Option) => {
+    setState((s) => {
+      if (is_multi) {
+        streamlitReturnFn("submit", (option as any as Option[]).map(({label}) => label));
+      } else {
+        streamlitReturnFn("submit", option.label);
+      }
+      if (clear_on_submit) {
         return ({
           menu: false,
           inputValue: "",
@@ -140,7 +139,7 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
       } else {
         let input = "";
 
-        switch (props.args.edit_after_submit) {
+        switch (edit_after_submit) {
           case "current":
             input = s.inputValue;
             break;
@@ -153,228 +152,234 @@ class SingleSearchBox extends React.Component<{theme: any, args: any, streamlitR
             input = s.inputValue + " " + option.label;
             break;
         }
-      return {
-        menu: false,
-        selectedOption: option,
-        inputValue: input,
-        selectedOptionList: this.props.args.is_multi ? (option as any as Option[]) : s.selectedOptionList,
-      }
+        return {
+          menu: false,
+          selectedOption: option,
+          inputValue: input,
+          selectedOptionList: is_multi ? (option as any as Option[]) : s.selectedOptionList,
+        }
       }
     });
-  }
-
-  /**
-   * show searchbox with label on top
-   * @returns
-   */
-  public render = (): ReactNode => {
-    const editableAfterSubmit =
-      this.props.args.edit_after_submit !== "disabled";
-
-    // always focus the input field to enable edits
-    const onFocus = () => {
-      if (this.state.inputValue) {
-        if (editableAfterSubmit) {
-          this.state.inputValue && this.ref?.current?.select?.inputRef?.select?.();
-        }
-
-        this.props.streamlitReturnFn("search", this.state.inputValue)
-        this.eventFired.current = "search"
-        // hack for the absence of promise in streamlitReturnFn
-        waitUntil(() => this.props.args.option_source === this.state.inputValue, 100).then(() => {
-          this.setState({ menu: true })
-        })
-
+  }, [streamlitReturnFn, is_multi, clear_on_submit, edit_after_submit])
+  const openSelectMenu = useCallback(() => setState((s) => ({...s, menu: true })), [])
+  const onFocus = useCallback(() => {
+    const inputValue = state.inputValue
+    if (inputValue) {
+      if (editableAfterSubmit) {
+        inputValue && ref?.current?.select?.inputRef?.select?.();
       }
-    };
-    const css_prefix = this.props.args.css_prefix
-    const isLoading = this.eventFired.current === "search"
-      && this.props.args.option_source !== this.state.inputValue
-    const optionList = this.state.inputValue === "" ?
-      this.props.args.default_options
-      : this.props.args.options
-    const is_multi = this.props.args.is_multi
-    return (
-      <>
-      {this.props.args.search_box_css &&
-        <style>
-          {this.props.args.search_box_css} 
-        </style>
-      }
-      <div className={`${css_prefix} searchBoxContainer`}>
-        {this.props.args.title && (
-          <h1 className={`${css_prefix} title`}>
-            {this.props.args.title_picto &&
+
+      streamlitReturnFn("search", inputValue)
+      eventFired.current = "search"
+      // hack for the absence of promise in streamlitReturnFn
+      waitUntil(() => option_source === inputValue, 100).then(() => {
+        openSelectMenu()
+      })
+    }
+  }, [option_source, eventFired, state.inputValue, streamlitReturnFn, editableAfterSubmit, openSelectMenu, ref])
+  const isLoading = eventFired.current === "search"
+    && option_source !== state.inputValue
+  const optionList = state.inputValue === "" ?
+    default_options
+    : options
+  const onSelectChange = useCallback((option: any, a: any) => {
+    switch (a.action) {
+      case "select-option":
+        eventFired.current = "submit"
+        callbackSubmit(option);
+        return;
+      case "remove-value":
+        if (!is_multi) return
+        eventFired.current = "submit"
+        callbackSubmit(option);
+        return;
+
+      case "clear":
+        eventFired.current = "reset"
+        callbackReset();
+        return;
+    }
+  }, [is_multi, eventFired, callbackReset, callbackSubmit])
+  const onSelectInputChange = useCallback((
+    inputValue: string,
+    { action, prevInputValue }: InputActionMeta,
+  ) => {
+    switch (action) {
+      // ignore menu close or blur/unfocus events
+      case "input-change":
+        eventFired.current = "search"
+        callbackSearch(inputValue, debounce, streamlitReturnFn);
+        return;
+    }
+  }, [debounce, streamlitReturnFn, eventFired, callbackSearch])
+  const selectComponents = useMemo(() => ({
+    // MultiValue
+    // MultiValueContainer
+    // MultiValueLabel
+    // MultiValueRemove
+    ClearIndicator: (props: any) =>
+      style.clearIndicator(
+        props,
+        style_overrides?.clear || {},
+      ),
+    DropdownIndicator: () =>
+      style.iconDropdown(
+        state.menu,
+        style_overrides?.dropdown || {},
+      ),
+    IndicatorSeparator: () => null,
+    Input: editableAfterSubmit ? Input : components.Input,
+  }), [style_overrides?.clear, style_overrides?.dropdown, editableAfterSubmit, state.menu, style])
+  const onButtonClick = useCallback(() => {
+    eventFired.current = "button-click"
+    streamlitReturnFn("button-click", state.selectedOption?.label)
+  }, [streamlitReturnFn, state.selectedOption?.label, eventFired])
+  return (
+    <>
+    {search_box_css &&
+      <style>
+        {search_box_css} 
+      </style>
+    }
+    <div className={`${css_prefix} searchBoxContainer`}>
+      {title && (
+        <h1 className={`${css_prefix} title`}>
+          {title_picto &&
+            <span
+              id={`${css_prefix} title_picto`}
+              dangerouslySetInnerHTML={{__html: title_picto}}
+            />
+          }
+          {title}
+        </h1>
+      )}
+      {label && (
+        <div className={`${css_prefix} label`} style={style.label}>{label}</div>
+      )}
+      <div className={`${css_prefix} buttonRow`}>
+        <Select
+          // showing the disabled react-select leads to the component
+          // not showing the inputValue but just an empty input field
+          // we therefore need to re-render the component if we want to keep the focus
+          value={is_multi ? state.selectedOptionList : state.selectedOption}
+          inputValue={editableAfterSubmit ? state.inputValue : undefined}
+          isClearable={true}
+          isSearchable={true}
+          styles={style.select}
+          options={optionList}
+          placeholder={placeholder}
+          isMulti={is_multi}
+          // component overrides
+          components={selectComponents}
+          // handlers
+          filterOption={(_, __) => true}
+          onFocus={onFocus}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onChange={onSelectChange}
+          onInputChange={onSelectInputChange}
+          onMenuOpen={openSelectMenu}
+          onMenuClose={useCallback(() => setState((s) => ({...s, menu: false })), [])}
+          isLoading={isLoading}
+          menuIsOpen={optionList && state.menu}
+        />
+        {button && (
+          <button
+            className={`${css_prefix} button`}
+            onClick={onButtonClick}
+            >
+            {button_picto &&
               <span
-                id={`${css_prefix} title_picto`}
-                dangerouslySetInnerHTML={{__html: this.props.args.title_picto}}
+                className={`${css_prefix} button_picto`}
+                dangerouslySetInnerHTML={{__html: button_picto}}
               />
             }
-            {this.props.args.title}
-          </h1>
+            {button}
+          </button>
         )}
-        {this.props.args.label && (
-          <div className={`${css_prefix} label`} style={this.style.label}>{this.props.args.label}</div>
-        )}
-        <div className={`${css_prefix} buttonRow`}>
-          <Select
-            // showing the disabled react-select leads to the component
-            // not showing the inputValue but just an empty input field
-            // we therefore need to re-render the component if we want to keep the focus
-            value={is_multi ? this.state.selectedOptionList : this.state.selectedOption}
-            inputValue={editableAfterSubmit ? this.state.inputValue : undefined}
-            isClearable={true}
-            isSearchable={true}
-            styles={this.style.select}
-            options={optionList}
-            placeholder={this.props.args.placeholder}
-            isMulti={is_multi}
-            // component overrides
-            components={{
-              // MultiValue
-              // MultiValueContainer
-              // MultiValueLabel
-              // MultiValueRemove
-              ClearIndicator: (props) =>
-                this.style.clearIndicator(
-                  props,
-                  this.props.args.style_overrides?.clear || {},
-                ),
-              DropdownIndicator: () =>
-                this.style.iconDropdown(
-                  this.state.menu,
-                  this.props.args.style_overrides?.dropdown || {},
-                ),
-              IndicatorSeparator: () => null,
-              Input: editableAfterSubmit ? Input : components.Input,
-            }}
-            // handlers
-            filterOption={(_, __) => true}
-            onFocus={() => onFocus()}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onChange={(option: any, a: any) => {
-              switch (a.action) {
-                case "select-option":
-                  this.eventFired.current = "submit"
-                  this.callbackSubmit(option);
-                  return;
-                case "remove-value":
-                  if (!this.props.args.is_multi) return
-                  this.eventFired.current = "submit"
-                  this.callbackSubmit(option);
-                  return;
-
-                case "clear":
-                  this.eventFired.current = "reset"
-                  this.callbackReset();
-                  return;
-              }
-            }}
-            onInputChange={(
-              inputValue: string,
-              { action, prevInputValue }: InputActionMeta,
-            ) => {
-              switch (action) {
-                // ignore menu close or blur/unfocus events
-                case "input-change":
-                  this.eventFired.current = "search"
-                  this.callbackSearch(inputValue);
-                  return;
-              }
-            }}
-            onMenuOpen={() => this.setState({ menu: true })}
-            onMenuClose={() => this.setState({ menu: false })}
-            isLoading={isLoading}
-            menuIsOpen={optionList && this.state.menu}
-          />
-          {this.props.args.button && (
-            <button
-              className={`${css_prefix} button`}
-              onClick={() => {
-                this.eventFired.current = "button-click"
-                this.props.streamlitReturnFn("button-click", this.state.selectedOption?.label)
-              }
-              }
-              >
-              {this.props.args.button_picto &&
-                <span
-                  className={`${css_prefix} button_picto`}
-                  dangerouslySetInnerHTML={{__html: this.props.args.button_picto}}
-                />
-              }
-              {this.props.args.button}
-            </button>
-          )}
-        </div>
       </div>
-      </>
-    );
-  };
+    </div>
+    </>
+  );
+}
+
+function SearchBoxFnRenderer({theme, streamlitReturnGlobalFn, innerProps, index} : {theme: any, streamlitReturnGlobalFn: any, innerProps: any, index: number}) {
+    const streamlitReturnFn = useCallback((interaction: string, value: any) => {
+      streamlitReturnGlobalFn(index, {interaction, value})
+    }, [index, streamlitReturnGlobalFn])
+    if (innerProps.datetimepicker_props) {
+      const datetimepickerId = `input-dtpck-${innerProps.key}`
+      const css_prefix = innerProps.css_prefix
+      return <SimpleDatetimePicker
+        defaultVal={innerProps.default as string}
+        css_prefix={css_prefix}
+        innerProps={innerProps}
+        datetimepickerId={datetimepickerId}
+        streamlitReturnFn={streamlitReturnFn}
+        />
+    }
+    return <SingleSearchBox
+      key={innerProps.key}
+      args={innerProps}
+      theme={theme}
+      streamlitReturnFn={streamlitReturnFn}
+      />
+}
+
+function SearchBoxFn(props: {theme?: Theme | undefined, args: {css_prefix: string, global_css: string, propsList: any[]}}) {
+  const args = props.args
+  const propsList = args.propsList
+  const [_state, setState] = useState<(null | StreamlitReturn)[]>(() => propsList.map(() => null))
+  const streamlitReturnGlobalFn = useCallback((index: number, returnVal: {interaction: any, value: any}): void => {
+    setState((s: (null | StreamlitReturn)[]) => {
+      // This workaround is made because streamlit has a very weird tendency to turn
+      // JS arrays into integer-indexed objects, with all the problems it brings.
+      // This way we always have an array to work with (and always in sync with the widget number)
+      const newState = propsList.map((_v: any, innerIndex: number) => {
+        const value = s?.[innerIndex]
+        if (value?.isChangeSource) {
+          value.isChangeSource = false
+        }
+        if (innerIndex === index) {
+          return {
+            ...returnVal,
+            isChangeSource: true
+          }
+        }
+        return value
+      })
+      Streamlit.setComponentValue(newState);
+      return newState
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...propsList, Streamlit.setComponentValue])
+
+  return <div className={`${args.css_prefix ?? 'searchBox'} globalContainer`}>
+    {args.global_css &&
+      <style>
+        {args.global_css} 
+      </style>
+    }
+    {propsList.map((innerProps: any, index: number) => {
+      return <SearchBoxFnRenderer
+        key={innerProps.key}
+        index={index}
+        streamlitReturnGlobalFn={streamlitReturnGlobalFn}
+        innerProps={innerProps}
+        theme={props.theme}
+        />
+    })}
+  </div>
 }
 
 class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
-  state = this.props.args.propsList.map(() => null)
   /**
    * Render any nuber of searchbox
    * @returns
    */
   public render = (): ReactNode => {
-    const propsList = this.props.args.propsList
     // const [_, setReturnValues] = useState<(null | StreamlitReturn)[]>(propsList.map(() => null))
+    return <SearchBoxFn {...this.props} />
     
-    const streamlitReturnGlobalFn = (index: number, returnVal: {interaction: any, value: any}): void => {
-      this.setState((s: (null | StreamlitReturn)[]) => {
-        // This workaround is made because streamlit has a very weird tendency to turn
-        // JS arrays into integer-indexed objects, with all the problems it brings.
-        // This way we always have an array to work with (and always in sync with the widget number)
-        const newState = this.props.args.propsList.map((_v: any, innerIndex: number) => {
-          const value = s?.[innerIndex]
-          if (value?.isChangeSource) {
-            value.isChangeSource = false
-          }
-          if (innerIndex === index) {
-            return {
-              ...returnVal,
-              isChangeSource: true
-            }
-          }
-          return value
-        })
-        Streamlit.setComponentValue(newState);
-        return newState
-      })
-    }
-
-    return <div className={`${this.props.args.css_prefix ?? 'searchBox'} globalContainer`}>
-      {this.props.args.global_css &&
-        <style>
-          {this.props.args.global_css} 
-        </style>
-      }
-      {propsList.map((innerProps: any, index: number) => {
-        
-        const streamlitReturnFn = (interaction: string, value: any) => {
-          streamlitReturnGlobalFn(index, {interaction, value})
-        }
-        if (innerProps.datetimepicker_props) {
-          const datetimepickerId = `input-dtpck-${innerProps.key}`
-          const css_prefix = innerProps.css_prefix
-          return <SimpleDatetimePicker
-            defaultVal={innerProps.default as string}
-            css_prefix={css_prefix}
-            innerProps={innerProps}
-            datetimepickerId={datetimepickerId}
-            streamlitReturnFn={streamlitReturnFn}
-            />
-        }
-        return <SingleSearchBox
-          key={innerProps.key}
-          args={innerProps}
-          theme={this.props.theme}
-          streamlitReturnFn={streamlitReturnFn}
-          />
-      })}
-    </div>
   }
 }
 export default withStreamlitConnection(Searchbox);
@@ -401,8 +406,6 @@ function SimpleDatetimePicker({defaultVal, css_prefix, innerProps, datetimepicke
   streamlitReturnFn: ((a: string, e: any) => any);
 }) {
   const [value, setValue] = useState(defaultVal)
-  console.log("defaultVal", defaultVal)
-  console.log("value", value)
   return <div className={`${css_prefix} datetimePickerContainer`}>
     <label className={`${css_prefix} label`} >
       {innerProps.label}
@@ -412,10 +415,10 @@ function SimpleDatetimePicker({defaultVal, css_prefix, innerProps, datetimepicke
       className={`${css_prefix} datetimePicker`}
       {...innerProps.datetimepicker_props}
       value={value}
-      onChange={(e) => setValue(() => {
+      onChange={useCallback((e) => {
         setValue(e.target.value)
         return streamlitReturnFn("simple-value", e.target.value)
-      })}
+      }, [streamlitReturnFn])}
     />
   </div>
 }
