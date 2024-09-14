@@ -363,7 +363,7 @@ def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[
 
     return [st.session_state[key]["search"], rerun_on_update]
 
-def button_click_handle(props_init, react_state, global_result: Any) -> None:
+async def button_click_handle(props_init, react_state, global_result: Any) -> None:
     """Calls the function which handles the button click for each search widget.
     This is done in a distinct phase (compared to single_state) for passing round the global result as well.
     """
@@ -411,10 +411,11 @@ def st_searchbox_list(
     Returns:
         any: based on user selection
     """
-    props_list_js = []
-    props_list_py = []
     # initialize with defaults :
-    for props in props_list:
+    # for props in props_list:
+    async def gather_props_list(props) -> Tuple[Any, Any]:
+        """Returns props_js, props_py tuple
+        """
         key = props.get("key", "searchbox")
         default = props.get("default", None)
         default_options = props.get("default_options", None)
@@ -430,8 +431,7 @@ def st_searchbox_list(
                 "label": props.get("label"),
                 "global_css": props.get("global_css")
                 }
-            props_list_py.append(item)
-            props_list_js.append(item)
+            return (item, item)
         else:
             raw_selected_value = st.session_state[key]["result"]
             selected_value = None 
@@ -470,7 +470,6 @@ def st_searchbox_list(
                 "selected_value": selected_value,
                 "selected_value_list": selected_value_list
             }
-            props_list_js.append(item)
             item_for_y = {
                 **item,
                 "default_options": _list_to_options_py(default_options),
@@ -478,17 +477,12 @@ def st_searchbox_list(
                 "search_function": props.get("search_function"),
                 "on_button_click": props.get("on_button_click", None)
             }
-            props_list_py.append(item_for_y)
+            return (item, item_for_y)
 
-    # everything here is passed to react as this.props.args
-    react_state_global = _get_react_component(
-        key=global_key, #st.session_state[key]["key_react"],
-        propsList=props_list_js,
-        css_prefix=global_css_prefix,
-        global_css=global_css
-    )
+    result = []
+    global_rerun_on_update_list = []
 
-    def index_react_glob(idx: int):
+    def index_react_glob(react_state_global: Any, idx: int):
         if react_state_global is None:
             return None
         if isinstance(react_state_global, dict):
@@ -496,20 +490,30 @@ def st_searchbox_list(
         if isinstance(react_state_global, list):
             return react_state_global[idx]
         return None
-    result = []
-    global_rerun_on_update_list = []
-    
-    async def gather_result (idx, props):
+
+    async def gather_result (idx, props, react_state_global):
         key = props.get("key")
-        [val, rerun_on_update] = single_state(props, index_react_glob(idx), key, props.get("is_multi", False))
+        [val, rerun_on_update] = single_state(props, index_react_glob(react_state_global, idx), key, props.get("is_multi", False))
         global_rerun_on_update_list.append(rerun_on_update)
-        result.append(val)
-    async def gather():
-        tasks = [gather_result(idx, props) for idx, props in enumerate(props_list_py)]
-        await asyncio.gather(*tasks)
-    ok = asyncio.run(gather())
-    for idx, props in enumerate(props_list_py):
-        button_click_handle(props, index_react_glob(idx), result)
+        return val
+    async def global_exec():
+        tasks = [gather_props_list(props) for props in props_list]
+        props_list_zipped = await asyncio.gather(*tasks)
+        props_js = [props_js for (props_js, _) in props_list_zipped]
+        # everything here is passed to react as this.props.args
+        react_state_global = _get_react_component(
+            key=global_key, #st.session_state[key]["key_react"],
+            propsList=props_js,
+            css_prefix=global_css_prefix,
+            global_css=global_css
+        )
+        result_tasks = [gather_result(idx, props_py, react_state_global) for idx, (_, props_py) in enumerate(props_list_zipped)]
+        result = await asyncio.gather(*result_tasks)
+        button_tasks = [button_click_handle(props_py, index_react_glob(react_state_global, idx), result) for idx, (_, props_py) in enumerate(props_list_zipped)]
+        await asyncio.gather(*button_tasks)
+    
+    asyncio.run(global_exec())
+    
     for rerun_on_update in global_rerun_on_update_list:
         if rerun_on_update:
             rerun()
