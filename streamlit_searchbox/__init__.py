@@ -483,6 +483,8 @@ def st_searchbox_list(
     global_rerun_on_update_list = []
 
     def index_react_glob(react_state_global: Any, idx: int):
+        """This exists because streamlit has a weird tendency to mutate
+        JS arrays into stringified index objects..."""
         if react_state_global is None:
             return None
         if isinstance(react_state_global, dict):
