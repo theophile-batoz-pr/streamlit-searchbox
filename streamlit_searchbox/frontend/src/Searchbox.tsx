@@ -147,7 +147,7 @@ function SingleSearchBox(props: {theme: any, args: any, streamlitReturnFn: Strea
       }
       return {
         menu: clear_on_submit ? false : true,
-        inputValue: clear_on_submit ? "" : input,
+        inputValue: clear_on_submit && is_multi ? "" : input,
         selectedOption: option,
         selectedOptionList: is_multi ? (option as any as Option[]) : s.selectedOptionList,
       }
