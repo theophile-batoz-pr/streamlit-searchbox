@@ -22,8 +22,9 @@ interface State {
 }
 
 interface StreamlitReturn {
-  interaction: "submit" | "search" | "reset" | "button-click";
-  value: any;
+  interaction: "submit" | "search" | "reset" | "button-click" | "simple-value"
+  value: any
+  index: number
   isChangeSource?: boolean
 }
 type StreamlitFnType = (interaction: StreamlitReturn["interaction"], value: any) => void
@@ -129,35 +130,26 @@ function SingleSearchBox(props: {theme: any, args: any, streamlitReturnFn: Strea
       } else {
         streamlitReturnFn("submit", option.label);
       }
-      if (clear_on_submit) {
-        return ({
-          menu: false,
-          inputValue: "",
-          selectedOption: null,
-          selectedOptionList: [],
-        });
-      } else {
-        let input = "";
+      let input = "";
 
-        switch (edit_after_submit) {
-          case "current":
-            input = s.inputValue;
-            break;
+      switch (edit_after_submit) {
+        case "current":
+          input = s.inputValue;
+          break;
 
-          case "option":
-            input = option.label;
-            break;
+        case "option":
+          input = option.label;
+          break;
 
-          case "concat":
-            input = s.inputValue + " " + option.label;
-            break;
-        }
-        return {
-          menu: false,
-          selectedOption: option,
-          inputValue: input,
-          selectedOptionList: is_multi ? (option as any as Option[]) : s.selectedOptionList,
-        }
+        case "concat":
+          input = s.inputValue + " " + option.label;
+          break;
+      }
+      return {
+        menu: clear_on_submit ? false : true,
+        inputValue: clear_on_submit ? "" : input,
+        selectedOption: option,
+        selectedOptionList: is_multi ? (option as any as Option[]) : s.selectedOptionList,
       }
     });
   }, [streamlitReturnFn, is_multi, clear_on_submit, edit_after_submit])
@@ -304,7 +296,7 @@ function SingleSearchBox(props: {theme: any, args: any, streamlitReturnFn: Strea
 
 function SearchBoxFnRenderer({theme, streamlitReturnGlobalFn, innerProps, index} : {theme: any, streamlitReturnGlobalFn: any, innerProps: any, index: number}) {
     const streamlitReturnFn = useCallback((interaction: string, value: any) => {
-      streamlitReturnGlobalFn(index, {interaction, value})
+      streamlitReturnGlobalFn({index, interaction, value})
     }, [index, streamlitReturnGlobalFn])
     if (innerProps.datetimepicker_props) {
       const datetimepickerId = `input-dtpck-${innerProps.key}`
@@ -325,38 +317,62 @@ function SearchBoxFnRenderer({theme, streamlitReturnGlobalFn, innerProps, index}
       />
 }
 
-function SearchBoxFn(props: {theme?: Theme | undefined, args: {css_prefix: string, global_css: string, propsList: any[]}}) {
+type Args = {
+  css_prefix: string,
+  global_css: string,
+  propsList: any[],
+  button: string,
+  button_picto: string 
+}
+type GlobalState = {
+  action: null | StreamlitReturn,
+  valueList: (string | string[] | null)[]
+}
+function SearchBoxFn(props: {theme?: Theme | undefined, args: Args}) {
   const args = props.args
   const propsList = args.propsList
-  const [_state, setState] = useState<(null | StreamlitReturn)[]>(() => propsList.map(() => null))
-  const streamlitReturnGlobalFn = useCallback((index: number, returnVal: {interaction: any, value: any}): void => {
-    setState((s: (null | StreamlitReturn)[]) => {
+  const [_state, setState] = useState<GlobalState>(() => ({
+    action: null,
+    valueList: propsList.map((props) => props.default ?? null)
+  }))
+  const streamlitReturnGlobalFn = useCallback((input: {interaction: any, value: any, index: number}): void => {
+    setState((s: GlobalState) => {
       // This workaround is made because streamlit has a very weird tendency to turn
       // JS arrays into integer-indexed objects, with all the problems it brings.
       // This way we always have an array to work with (and always in sync with the widget number)
-      const newState = propsList.map((_v: any, innerIndex: number) => {
-        const value = s?.[innerIndex]
-        if (value?.isChangeSource) {
-          value.isChangeSource = false
-        }
-        if (innerIndex === index) {
-          return {
-            ...returnVal,
-            isChangeSource: true
-          }
-        }
-        return value
-      })
+      // const newState = propsList.map((_v: any, innerIndex: number) => {
+      //   const value = s?.[innerIndex]
+      //   return value
+      // })
+      const newState = {
+        action: input,
+        valueList: s.valueList
+      }
+      if (input.interaction === "submit" || input.interaction === "simple-value") {
+        const newValueList = [...s.valueList]
+        newValueList[input.index] = input.value
+        newState.valueList = newValueList
+      } else if (input.interaction === "reset") {
+        const newValueList = [...s.valueList]
+        newValueList[input.index] = newValueList[input.index]?.length ? [] : null
+        newState.valueList = newValueList
+      }
       Streamlit.setComponentValue(newState);
       return newState
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...propsList, Streamlit.setComponentValue])
 
-  return <div className={`${args.css_prefix ?? 'searchBox'} globalContainer`}>
-    {args.global_css &&
+  const {
+    css_prefix,
+    global_css,
+    // button,
+    // button_picto
+  } = args
+  return <div className={`${css_prefix ?? 'searchBox'} globalContainer`}>
+    {global_css &&
       <style>
-        {args.global_css} 
+        {global_css} 
       </style>
     }
     {propsList.map((innerProps: any, index: number) => {

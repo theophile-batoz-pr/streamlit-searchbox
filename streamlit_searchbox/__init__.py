@@ -81,7 +81,7 @@ def _process_search(
     key: str,
     searchterm: str,
     **kwargs,
-) -> None:
+) -> bool:
     # nothing changed, avoid new search
     if searchterm == st.session_state[key]["search"]:
         return False
@@ -314,54 +314,80 @@ SearchboxProps = TypedDict(
     total=False,
 )
 
+def set_defaults_simplified(
+    key: str,
+    is_multi: bool,
+    default: Any,
+    default_options: List[Any] | None = None,
+) -> None:
+    default_key_react = f"{key}_react_{str(time.time())}"
+    key_react = st.session_state.get(key, {}).get("key_react", default_key_react)
+    default_options_js = []
+    if default is not None and not is_multi:
+        default_options_js = [{"value": default, "label": default}]
+    elif default_options is not None:
+        default_options_js = _list_to_options_js(default_options)
+    st.session_state[key] = {
+        # updated after each selection / reset
+        "result": default if default is not None else None,
+        # updated after each search keystroke
+        "search": default if default is not None and not is_multi else "",
+        # updated after each search_function run
+        "options_js": default_options_js,
+        # key that is used by react component, use time suffix to reload after clear
+        "key_react": key_react,
+    }
 
-def single_state(props_init, react_state, key, is_multi: bool = False) -> Tuple[Any, bool]:
-    """We assume the input props and the result are array of the same size (should always be the case).
-    The second return value is rerun_on_update (because we must do it only at the end).
-    """
-    rerun_on_update = False
-    default = props_init.get("default")
-    default_options = props_init.get("default_options")
+    if not default and default_options:
+        st.session_state[key]["options_js"] = _list_to_options_js(default_options)
 
-    if key not in st.session_state:
-        _set_defaults(key, is_multi, default, default_options)
-        return [None, True]
-    if react_state is None:
-        return [st.session_state[key]["result"], rerun_on_update]
-    rerun_on_update_arg = props_init.get("rerun_on_update", True)
+def process_search_simplified(
+    search_function: Callable[[str], List[Any]],
+    key: str,
+    searchterm: str,
+    **kwargs,
+) -> bool:
+    # nothing changed, avoid new search
+    if searchterm == st.session_state[key]["search"]:
+        return False
 
-    interaction, value = react_state["interaction"], react_state.get("value", None)
+    st.session_state[key]["search"] = searchterm
+    search_results = search_function(searchterm, **kwargs)
+    if search_results is None:
+        search_results = []
 
-    if interaction == "button-click":
-        value_source = "result" if is_multi else "search"
-        return [st.session_state[key][value_source], rerun_on_update]
+    options_list = _list_to_options_js(search_results)
+    st.session_state[key]["options_js"] = options_list
+    return True
 
-    if interaction == "simple-value":
-        return [value, False]
-        
+def process_action(props, interaction: Literal["submit", "search", "reset", "button-click"], value: Any, index: int, valueList: List[Any]) -> bool:
+    "..."
+    key = props.get("key")
+    is_multi = props.get("is_multi")
+    # submit, reset and button click are handled JS side.
     if interaction == "search":
-        search_function = props_init.get("search_function")
+        search_function = props.get("search_function")
         if search_function is None:
-            print(props_init)
-            raise ValueError(f"Unexpected empty search function for key={key}")
+            print(props)
+            raise ValueError(f"Unexpected empty search function for key={key}, index={index}")
         # triggers rerun, no ops afterwards executed
-        should_rerun = _process_search(search_function, key, value)
-        rerun_on_update = rerun_on_update_arg and should_rerun
-
+        should_rerun = process_search_simplified(search_function, key, value)
+        return should_rerun
+    st.session_state[key]["result"] = valueList[index]
     if interaction == "submit":
-        actual_value = value
-        st.session_state[key]["search"] = actual_value if not is_multi else ""
-        st.session_state[key]["result"] = actual_value
-        return [actual_value, rerun_on_update]
-
+        st.session_state[key]["search"] = value if not is_multi else ""
     if interaction == "reset":
-        persistant_default = props_init.get("persistant_default", False)
+        default = props.get("default")
+        default_options = props.get("default_options", [])
+        persistant_default = props.get("persistant_default", False)
         result_val = default if persistant_default else ([] if is_multi else None)
-        _set_defaults(key, is_multi, result_val, default_options)
-        # rerun_on_update = rerun_on_update_arg
-        return [result_val, rerun_on_update]
-
-    return [st.session_state[key]["search"], rerun_on_update]
+        set_defaults_simplified(key, is_multi, result_val, default_options)
+    if interaction == "button-click":
+        on_button_click = props.get("on_button_click")
+        if on_button_click is None:
+            raise ValueError("Can't execute on_button_click event without on_button_click function")
+        on_button_click(value, valueList)
+    return False
 
 async def button_click_handle(props_init, react_state, global_result: Any) -> None:
     """Calls the function which handles the button click for each search widget.
@@ -421,7 +447,7 @@ def st_searchbox_list(
         default_options = props.get("default_options", None)
         is_multi = props.get("is_multi", False)
         if key not in st.session_state:
-            _set_defaults(key, is_multi, default, default_options)
+            set_defaults_simplified(key, is_multi, default, default_options)
         is_special_input = props.get("datetimepicker_props")
         if isinstance(is_special_input, dict):
             item = {
@@ -472,7 +498,6 @@ def st_searchbox_list(
             }
             item_for_y = {
                 **item,
-                "default_options": _list_to_options_py(default_options),
                 "key": key,
                 "search_function": props.get("search_function"),
                 "on_button_click": props.get("on_button_click", None)
@@ -480,24 +505,7 @@ def st_searchbox_list(
             return (item, item_for_y)
 
     result = []
-    global_rerun_on_update_list = []
 
-    def index_react_glob(react_state_global: Any, idx: int):
-        """This exists because streamlit has a weird tendency to mutate
-        JS arrays into stringified index objects..."""
-        if react_state_global is None:
-            return None
-        if isinstance(react_state_global, dict):
-            return react_state_global.get(str(idx))
-        if isinstance(react_state_global, list):
-            return react_state_global[idx]
-        return None
-
-    async def gather_result (idx, props, react_state_global):
-        key = props.get("key")
-        [val, rerun_on_update] = single_state(props, index_react_glob(react_state_global, idx), key, props.get("is_multi", False))
-        global_rerun_on_update_list.append(rerun_on_update)
-        return val
     async def global_exec():
         tasks = [gather_props_list(props) for props in props_list]
         props_list_zipped = await asyncio.gather(*tasks)
@@ -509,17 +517,22 @@ def st_searchbox_list(
             css_prefix=global_css_prefix,
             global_css=global_css
         )
-        result_tasks = [gather_result(idx, props_py, react_state_global) for idx, (_, props_py) in enumerate(props_list_zipped)]
-        result = await asyncio.gather(*result_tasks)
-        button_tasks = [button_click_handle(props_py, index_react_glob(react_state_global, idx), result) for idx, (_, props_py) in enumerate(props_list_zipped)]
-        await asyncio.gather(*button_tasks)
+        if react_state_global is None:
+            return
+        action = react_state_global.get("action", {})
+        valueList = react_state_global.get("valueList", [])
+        if action is None:
+            return valueList
+        index = action.get("index")
+        interaction = action.get("interaction")
+        value = action.get("value")
+        (_, props) = props_list_zipped[index]
+        global_rerun_on_update = process_action(props, interaction, value, index, valueList)
+        if global_rerun_on_update:
+            rerun()
     
     asyncio.run(global_exec())
-    
-    for rerun_on_update in global_rerun_on_update_list:
-        if rerun_on_update:
-            rerun()
-            break
+
 
     # no new react interaction happened
     return result
