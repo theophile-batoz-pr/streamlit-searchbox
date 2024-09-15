@@ -328,7 +328,8 @@ type GlobalState = {
   action: null | StreamlitReturn,
   valueList: (string | string[] | null)[]
 }
-function SearchBoxFn(props: {theme?: Theme | undefined, args: Args}) {
+function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: boolean}) {
+  const debugLog = props.debug_log
   const args = props.args
   const propsList = args.propsList
   const [_state, setState] = useState<GlobalState>(() => ({
@@ -357,11 +358,12 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args}) {
         newValueList[input.index] = newValueList[input.index]?.length ? [] : null
         newState.valueList = newValueList
       }
+      debugLog && console.log("newState", newState)
       Streamlit.setComponentValue(newState);
       return newState
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...propsList, Streamlit.setComponentValue])
+  }, [...propsList, Streamlit.setComponentValue, debugLog])
 
   const {
     css_prefix,
