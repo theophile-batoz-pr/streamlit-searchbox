@@ -406,6 +406,7 @@ def st_searchbox_list(
     props_list: List[Union[SearchboxProps, DatetimepickerProps]],
     global_css_prefix: str | None = None,
     global_css: str | None = None,
+    debug_log: bool = False,
     **kwargs,
 ) -> List[Any]:
     """
@@ -515,7 +516,8 @@ def st_searchbox_list(
             key=global_key, #st.session_state[key]["key_react"],
             propsList=props_js,
             css_prefix=global_css_prefix,
-            global_css=global_css
+            global_css=global_css,
+            debug_log=debug_log
         )
         if react_state_global is None:
             return
