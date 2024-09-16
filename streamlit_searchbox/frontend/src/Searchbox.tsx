@@ -320,6 +320,12 @@ function SearchBoxFnRenderer({theme, streamlitReturnGlobalFn, innerProps, index}
 type Args = {
   css_prefix: string,
   global_css: string,
+  header?: {
+    html_str: string
+  },
+  footer?: {
+    html_str: string
+  },
   propsList: any[],
   button: string,
   button_picto: string 
@@ -338,13 +344,6 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
   }))
   const streamlitReturnGlobalFn = useCallback((input: {interaction: any, value: any, index: number}): void => {
     setState((s: GlobalState) => {
-      // This workaround is made because streamlit has a very weird tendency to turn
-      // JS arrays into integer-indexed objects, with all the problems it brings.
-      // This way we always have an array to work with (and always in sync with the widget number)
-      // const newState = propsList.map((_v: any, innerIndex: number) => {
-      //   const value = s?.[innerIndex]
-      //   return value
-      // })
       const newState = {
         action: input,
         valueList: s.valueList
@@ -364,10 +363,25 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...propsList, Streamlit.setComponentValue, debugLog])
-
+  const onHeaderClick = useCallback((e) => {
+    return streamlitReturnGlobalFn({
+      interaction: "header-click",
+      value: e?.target?.id,
+      index: -1
+    })
+  }, [streamlitReturnGlobalFn])
+  const onFooterClick = useCallback((e) => {
+    return streamlitReturnGlobalFn({
+      interaction: "footer-click",
+      value: e?.target?.id,
+      index: -1
+    })
+  }, [streamlitReturnGlobalFn])
   const {
     css_prefix,
     global_css,
+    header,
+    footer
     // button,
     // button_picto
   } = args
@@ -376,6 +390,14 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
       <style>
         {global_css} 
       </style>
+    }
+    {
+      header &&
+      <div
+        className={`${css_prefix} globalframe header`}
+        dangerouslySetInnerHTML={{__html: header.html_str}}
+        onClick={onHeaderClick}
+      />
     }
     {propsList.map((innerProps: any, index: number) => {
       return <SearchBoxFnRenderer
@@ -386,6 +408,14 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
         theme={props.theme}
         />
     })}
+    {
+      footer &&
+      <div
+        className={`${css_prefix} globalframe footer`}
+        dangerouslySetInnerHTML={{__html: footer.html_str}}
+        onClick={onFooterClick}
+      />
+    }
   </div>
 }
 
@@ -395,7 +425,6 @@ class Searchbox extends StreamlitComponentBase<(null | StreamlitReturn)[]> {
    * @returns
    */
   public render = (): ReactNode => {
-    // const [_, setReturnValues] = useState<(null | StreamlitReturn)[]>(propsList.map(() => null))
     return <SearchBoxFn {...this.props} />
     
   }
