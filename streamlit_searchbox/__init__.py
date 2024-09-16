@@ -359,8 +359,8 @@ def process_search_simplified(
     options_list = _list_to_options_js(search_results)
     st.session_state[key]["options_js"] = options_list
     return True
-
-def process_action(props, interaction: Literal["submit", "search", "reset", "button-click"], value: Any, index: int, valueList: List[Any]) -> bool:
+Interaction = Literal["submit", "search", "reset", "button-click", "header-click", "footer-click"]
+def process_action(props, header: HeaderProps | None, footer: FooterProps | None, interaction: Interaction, value: Any, index: int, valueList: List[Any]) -> bool:
     "..."
     key = props.get("key")
     is_multi = props.get("is_multi")
@@ -387,6 +387,19 @@ def process_action(props, interaction: Literal["submit", "search", "reset", "but
         if on_button_click is None:
             raise ValueError("Can't execute on_button_click event without on_button_click function")
         on_button_click(value, valueList)
+    if interaction == "button-click":
+        on_button_click = props.get("on_button_click")
+        if on_button_click is None:
+            raise ValueError("Can't execute on_button_click event without on_button_click function")
+        on_button_click(value, valueList)
+    if header is not None and interaction == "header-click":
+        on_click = header.get("on_click")
+        if on_click:
+            on_click(value, valueList)
+    if footer is not None and interaction == "footer-click":
+        on_click = footer.get("on_click")
+        if on_click:
+            on_click(value, valueList)
     return False
 
 async def button_click_handle(props_init, react_state, global_result: Any) -> None:
@@ -401,11 +414,30 @@ async def button_click_handle(props_init, react_state, global_result: Any) -> No
     if is_change_source and interaction == "button-click" and on_button_click is not None:
         on_button_click(value, global_result)
 
+HeaderProps = TypedDict(
+    "HeaderProps",
+    {
+        "html_str": str,
+        "on_click": Callable[[str, Any], None]
+    },
+    total=False,
+)
+FooterProps = TypedDict(
+    "FooterProps",
+    {
+        "html_str": str,
+        "on_click": Callable[[str, Any], None]
+    },
+    total=False,
+)
+
 def st_searchbox_list(
     global_key: str,
     props_list: List[Union[SearchboxProps, DatetimepickerProps]],
     global_css_prefix: str | None = None,
     global_css: str | None = None,
+    header: HeaderProps | None = None,
+    footer: FooterProps | None = None,
     debug_log: bool = False,
     **kwargs,
 ) -> List[Any]:
@@ -515,6 +547,8 @@ def st_searchbox_list(
         react_state_global = _get_react_component(
             key=global_key, #st.session_state[key]["key_react"],
             propsList=props_js,
+            header={"html_str": header.get("html_str", "")} if header is not None else None,
+            footer={"html_str": footer.get("html_str", "")} if footer is not None else None,
             css_prefix=global_css_prefix,
             global_css=global_css,
             debug_log=debug_log
@@ -529,7 +563,7 @@ def st_searchbox_list(
         interaction = action.get("interaction")
         value = action.get("value")
         (_, props) = props_list_zipped[index]
-        global_rerun_on_update = process_action(props, interaction, value, index, valueList)
+        global_rerun_on_update = process_action(props, header, footer, interaction, value, index, valueList)
         if global_rerun_on_update:
             rerun()
     
