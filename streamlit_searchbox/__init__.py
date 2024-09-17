@@ -393,10 +393,16 @@ def process_action(props, header: HeaderProps | None, footer: FooterProps | None
             raise ValueError("Can't execute on_button_click event without on_button_click function")
         on_button_click(value, valueList)
     if header is not None and interaction == "header-click":
+        header_key = header.get("key")
+        if header_key:
+            st.session_state[header_key] = value
         on_click = header.get("on_click")
         if on_click:
             return on_click(value, valueList)
     if footer is not None and interaction == "footer-click":
+        footer_key = footer.get("key")
+        if footer_key:
+            st.session_state[footer_key] = value
         on_click = footer.get("on_click")
         if on_click:
             return on_click(value, valueList)
