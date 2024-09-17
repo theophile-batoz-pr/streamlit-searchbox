@@ -418,6 +418,8 @@ HeaderProps = TypedDict(
     "HeaderProps",
     {
         "html_str": str,
+        "key": str,
+        "id_list": List[str], 
         "on_click": Callable[[str, Any], None]
     },
     total=False,
@@ -426,6 +428,8 @@ FooterProps = TypedDict(
     "FooterProps",
     {
         "html_str": str,
+        "key": str,
+        "id_list": List[str], 
         "on_click": Callable[[str, Any], None]
     },
     total=False,
@@ -547,8 +551,16 @@ def st_searchbox_list(
         react_state_global = _get_react_component(
             key=global_key, #st.session_state[key]["key_react"],
             propsList=props_js,
-            header={"html_str": header.get("html_str", "")} if header is not None else None,
-            footer={"html_str": footer.get("html_str", "")} if footer is not None else None,
+            header={
+                "html_str": header.get("html_str", ""),
+                "key": header.get("key", None),
+                "id_list": header.get("id_list", None),
+                } if header is not None else None,
+            footer={
+                "html_str": footer.get("html_str", ""),
+                "key": footer.get("key", None),
+                "id_list": footer.get("id_list", None),
+                } if footer is not None else None,
             css_prefix=global_css_prefix,
             global_css=global_css,
             debug_log=debug_log
