@@ -395,11 +395,11 @@ def process_action(props, header: HeaderProps | None, footer: FooterProps | None
     if header is not None and interaction == "header-click":
         on_click = header.get("on_click")
         if on_click:
-            on_click(value, valueList)
+            return on_click(value, valueList)
     if footer is not None and interaction == "footer-click":
         on_click = footer.get("on_click")
         if on_click:
-            on_click(value, valueList)
+            return on_click(value, valueList)
     return False
 
 async def button_click_handle(props_init, react_state, global_result: Any) -> None:
@@ -420,7 +420,7 @@ HeaderProps = TypedDict(
         "html_str": str,
         "key": str,
         "id_list": List[str], 
-        "on_click": Callable[[str, Any], None]
+        "on_click": Callable[[str, Any], bool]
     },
     total=False,
 )
@@ -430,7 +430,7 @@ FooterProps = TypedDict(
         "html_str": str,
         "key": str,
         "id_list": List[str], 
-        "on_click": Callable[[str, Any], None]
+        "on_click": Callable[[str, Any], bool]
     },
     total=False,
 )
