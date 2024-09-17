@@ -321,10 +321,14 @@ type Args = {
   css_prefix: string,
   global_css: string,
   header?: {
-    html_str: string
+    html_str: string,
+    key?: string,
+    id_list?: string[]
   },
   footer?: {
-    html_str: string
+    html_str: string,
+    key?: string,
+    id_list?: string[]
   },
   propsList: any[],
   button: string,
@@ -363,20 +367,6 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...propsList, Streamlit.setComponentValue, debugLog])
-  const onHeaderClick = useCallback((e) => {
-    return streamlitReturnGlobalFn({
-      interaction: "header-click",
-      value: e?.target?.id,
-      index: -1
-    })
-  }, [streamlitReturnGlobalFn])
-  const onFooterClick = useCallback((e) => {
-    return streamlitReturnGlobalFn({
-      interaction: "footer-click",
-      value: e?.target?.id,
-      index: -1
-    })
-  }, [streamlitReturnGlobalFn])
   const {
     css_prefix,
     global_css,
@@ -385,7 +375,32 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
     // button,
     // button_picto
   } = args
-  return <div className={`${css_prefix ?? 'searchBox'} globalContainer`}>
+  const cssPrefixD = css_prefix ?? 'searchBox'
+  const onHeaderClick = useCallback((e) => {
+    const targetId = e?.target?.id
+    const idList = header?.id_list
+    if (!idList || (idList && idList.includes(targetId))) {
+      streamlitReturnGlobalFn({
+        interaction: "header-click",
+        value: targetId,
+        index: -1
+      })
+    }
+  }, [streamlitReturnGlobalFn, header?.id_list])
+  const onFooterClick = useCallback((e) => {
+    const targetId = e?.target?.id
+    const idList = footer?.id_list
+    if (!idList || (idList && idList.includes(targetId))) {
+      streamlitReturnGlobalFn({
+        interaction: "footer-click",
+        value: targetId,
+        index: -1
+      })
+    }
+  }, [streamlitReturnGlobalFn, footer?.id_list])
+  const headerHtml = useMemo(() => header ? ({__html: header.html_str}) : undefined, [header])
+  const footerHtml = useMemo(() => footer ? ({__html: footer.html_str}) : undefined, [footer])
+  return <div className={`${cssPrefixD} globalContainer`}>
     {global_css &&
       <style>
         {global_css} 
@@ -394,8 +409,9 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
     {
       header &&
       <div
-        className={`${css_prefix} globalframe header`}
-        dangerouslySetInnerHTML={{__html: header.html_str}}
+        key={header.key}
+        className={`${cssPrefixD} globalframe header`}
+        dangerouslySetInnerHTML={headerHtml}
         onClick={onHeaderClick}
       />
     }
@@ -411,8 +427,9 @@ function SearchBoxFn(props: {theme?: Theme | undefined, args: Args, debug_log?: 
     {
       footer &&
       <div
+        key={footer.key}
         className={`${css_prefix} globalframe footer`}
-        dangerouslySetInnerHTML={{__html: footer.html_str}}
+        dangerouslySetInnerHTML={footerHtml}
         onClick={onFooterClick}
       />
     }
