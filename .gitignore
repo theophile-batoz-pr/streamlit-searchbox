@@ -63,7 +63,9 @@ coverage/
 ########################################################################
 .vscode/
 venv
+pyvenv.cfg
 README.local.md
 .streamlit
 venv*
 tests/screenshots/*.png
+lib/*

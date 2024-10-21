@@ -16,6 +16,7 @@ logging.getLogger("streamlit_searchbox").setLevel(logging.DEBUG)
 st.set_page_config(layout="centered", page_title="Searchbox Demo")
 
 
+@st.cache_data(ttl=120)
 def search_wikipedia_ids(searchterm: str) -> List[tuple[str, Any]]:
     """
     function with list of tuples (label:str, value:any)
@@ -100,11 +101,10 @@ def on_button_click(val: str, global_value: Any) -> None:
 # will pass all kwargs to the searchbox component
 boxes = [
     dict(
-        search_function=search_rnd_delay,
-        default_options=search_rnd_delay(""),
+        search_function=search_wikipedia_ids,
+        default_options=search_wikipedia_ids(""),
         placeholder="Search Wikipedia",
         label=search_wikipedia_ids.__name__,
-        default="100000",
         clear_on_submit=False,
         key=search_wikipedia_ids.__name__,
         debounce=300,
