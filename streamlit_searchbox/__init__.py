@@ -5,6 +5,7 @@ module for streamlit searchbox component
 from __future__ import annotations
 
 import functools
+import datetime
 import logging
 import os
 import time
@@ -359,6 +360,7 @@ def process_search_simplified(
     options_list = _list_to_options_js(search_results)
     st.session_state[key]["options_js"] = options_list
     return True
+
 Interaction = Literal["submit", "search", "reset", "button-click", "header-click", "footer-click"]
 def process_action(props, header: HeaderProps | None, footer: FooterProps | None, interaction: Interaction, value: Any, index: int, valueList: List[Any]) -> bool:
     "..."
@@ -382,11 +384,6 @@ def process_action(props, header: HeaderProps | None, footer: FooterProps | None
         persistant_default = props.get("persistant_default", False)
         result_val = default if persistant_default else ([] if is_multi else None)
         set_defaults_simplified(key, is_multi, result_val, default_options)
-    if interaction == "button-click":
-        on_button_click = props.get("on_button_click")
-        if on_button_click is None:
-            raise ValueError("Can't execute on_button_click event without on_button_click function")
-        on_button_click(value, valueList)
     if interaction == "button-click":
         on_button_click = props.get("on_button_click")
         if on_button_click is None:
@@ -441,6 +438,7 @@ FooterProps = TypedDict(
     total=False,
 )
 
+
 def st_searchbox_list(
     global_key: str,
     props_list: List[Union[SearchboxProps, DatetimepickerProps]],
@@ -449,6 +447,7 @@ def st_searchbox_list(
     header: HeaderProps | None = None,
     footer: FooterProps | None = None,
     debug_log: bool = False,
+    min_execution_time: int = 450,
     **kwargs,
 ) -> List[Any]:
     """
@@ -550,6 +549,8 @@ def st_searchbox_list(
     result = []
 
     async def global_exec():
+        ts_start = datetime.datetime.now() # see global_rerun_on_update below for context
+
         tasks = [gather_props_list(props) for props in props_list]
         props_list_zipped = await asyncio.gather(*tasks)
         props_js = [props_js for (props_js, _) in props_list_zipped]
@@ -583,6 +584,14 @@ def st_searchbox_list(
         (_, props) = props_list_zipped[index]
         global_rerun_on_update = process_action(props, header, footer, interaction, value, index, valueList)
         if global_rerun_on_update:
+            # this comes from a bug in streamlit; see https://github.com/streamlit/streamlit/issues/9002
+            ts_stop = datetime.datetime.now()
+            execution_time_ms = (ts_stop - ts_start).total_seconds() * 1000
+
+            # wait until minimal execution time is reached
+            if execution_time_ms < min_execution_time:
+                time.sleep((min_execution_time - execution_time_ms) / 1000)
+
             rerun()
     
     asyncio.run(global_exec())
