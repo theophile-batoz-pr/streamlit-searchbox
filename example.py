@@ -396,6 +396,9 @@ global_css="""
             }
         }
         """
+def okok(id_val: str, _list: Any):
+    print(id_val)
+    
 st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
     {**boxes[0], "key":"okokok-sss"},
     {
@@ -413,7 +416,11 @@ st_searchbox_list(global_key="lqksjdlkqsjldkj", props_list=[
     },
     {**boxes[0], "key":"okokok-aaaaaaaaa",
             "is_multi": True, "default": ["100000"], "clear_on_submit": False, "edit_after_submit": "current"   },
-    ], global_css=global_css)
+    ], global_css=global_css,
+    header={
+        "html_str": "<button id='AA_button1'>AAA</button><button id='BB_button1'>BBB</button>",
+        "on_click": okok
+    })
 
 ok = st.session_state.get("test_value")
 st.write(ok)
